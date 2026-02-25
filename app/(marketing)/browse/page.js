@@ -305,9 +305,9 @@ export default function BrowsePage() {
                                 const validUrl = rawUrl ? ensureProtocol(rawUrl) : null;
 
                                 return (
-                                    <div key={resource.id} className="group flex flex-col h-full border border-slate-200 rounded-xl hover:border-primary/50 transition-colors bg-white p-5">
+                                    <Link key={resource.id} href={`/resource/${resource.id}`} className="group flex flex-col h-full border border-slate-200 rounded-xl hover:border-primary/50 transition-colors bg-white p-5 cursor-pointer">
                                         <div className="flex items-start gap-3 mb-3">
-                                            <div className="p-2 bg-slate-100 rounded-lg text-slate-500 shrink-0">
+                                            <div className="p-2 bg-slate-100 rounded-lg text-slate-500 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
                                                 {getResourceIcon(resource.type)}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -333,14 +333,14 @@ export default function BrowsePage() {
                                                 </div>
                                             )}
                                             {validUrl ? (
-                                                <a href={validUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline ml-auto flex items-center gap-1">
-                                                    Accéder <ArrowRight className="w-3 h-3" />
-                                                </a>
+                                                <span className="text-xs font-bold text-primary group-hover:underline ml-auto flex items-center gap-1">
+                                                    Ouvrir <ArrowRight className="w-3 h-3" />
+                                                </span>
                                             ) : (
                                                 <span className="text-xs text-slate-300 ml-auto">Non disponible</span>
                                             )}
                                         </div>
-                                    </div>
+                                    </Link>
                                 );
                             })}
                         </div>

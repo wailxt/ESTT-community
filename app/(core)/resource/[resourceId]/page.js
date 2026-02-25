@@ -8,7 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileText, Video, Image as ImageIcon, Link as LinkIcon, Download, ExternalLink, User, Share2, GraduationCap, Play, MessageCircle, Send, X } from 'lucide-react';
+import { Loader2, FileText, Video, Image as ImageIcon, Link as LinkIcon, Download, ExternalLink, User, Share2, GraduationCap, Play, MessageCircle, Send, X, Flag, AlertTriangle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import Link from 'next/link';
 
 export default function ResourcePage() {
@@ -24,6 +27,12 @@ export default function ResourcePage() {
     const [replyTexts, setReplyTexts] = useState({});
     const [expandedReplies, setExpandedReplies] = useState({});
     const [submitting, setSubmitting] = useState(false);
+
+    // Reporting state
+    const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+    const [reportReason, setReportReason] = useState('spam');
+    const [reportDetails, setReportDetails] = useState('');
+    const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
     useEffect(() => {
         if (resourceId) {
@@ -98,6 +107,58 @@ export default function ResourcePage() {
         return `https://${url}`;
     };
 
+    const getYouTubeEmbedUrl = (url) => {
+        if (!url) return null;
+
+        // Handle playlist
+        const playlistMatch = url.match(/[?&]list=([^#\&\?]+)/);
+        if (playlistMatch && playlistMatch[1]) {
+            return `https://www.youtube.com/embed/videoseries?list=${playlistMatch[1]}`;
+        }
+
+        // Handle video
+        const videoMatch = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+        if (videoMatch && videoMatch[1]) {
+            return `https://www.youtube.com/embed/${videoMatch[1]}`;
+        }
+
+        return null;
+    };
+
+    const getGoogleWorkspaceEmbedUrl = (url) => {
+        if (!url) return null;
+
+        // Match general Google Docs/Sheets/Slides/Forms formats
+        // Typically: https://docs.google.com/document/d/FILE_ID/edit
+        // We want to replace /edit, /view, etc. with /preview
+        const googleDocsRegex = /(https:\/\/docs\.google\.com\/(?:document|spreadsheets|presentation|forms)\/d\/[a-zA-Z0-9-_]+)\/(?:edit|view|copy)?(.*)?/i;
+
+        const match = url.match(googleDocsRegex);
+        if (match && match[1]) {
+            return `${match[1]}/preview`;
+        }
+
+        // Handle drive folder/file sharing links (some can be previewed)
+        const driveRegex = /(https:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9-_]+)\/(?:edit|view)?(.*)?/i;
+        const driveMatch = url.match(driveRegex);
+        if (driveMatch && driveMatch[1]) {
+            return `${driveMatch[1]}/preview`;
+        }
+
+        return null;
+    };
+
+    const isPdfUrl = (url) => {
+        if (!url) return false;
+        // Check if URL contains .pdf (ignoring query params)
+        try {
+            const urlObj = new URL(url);
+            return urlObj.pathname.toLowerCase().endsWith('.pdf');
+        } catch (e) {
+            return url.toLowerCase().includes('.pdf');
+        }
+    };
+
     const getFieldName = (fieldCode) => {
         return fieldCode?.toUpperCase() || 'N/A';
     };
@@ -141,7 +202,7 @@ export default function ResourcePage() {
             setSubmitting(true);
             const commentsRef = ref(db, `resources/${resourceId}/comments`);
             const newCommentRef = push(commentsRef);
-            
+
             await set(newCommentRef, {
                 text: commentText,
                 authorId: user.uid,
@@ -177,7 +238,7 @@ export default function ResourcePage() {
             setSubmitting(true);
             const commentsRef = ref(db, `resources/${resourceId}/comments`);
             const newReplyRef = push(commentsRef);
-            
+
             await set(newReplyRef, {
                 text: replyText,
                 authorId: user.uid,
@@ -196,6 +257,44 @@ export default function ResourcePage() {
             alert('Erreur lors de la publication de la réponse');
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleReportSubmit = async () => {
+        if (!user) {
+            alert('Veuillez vous connecter pour signaler une ressource');
+            return;
+        }
+
+        try {
+            setIsSubmittingReport(true);
+            const reportsRef = ref(db, 'reports');
+            const newReportRef = push(reportsRef);
+
+            let finalReason = reportReason;
+            if (reportReason === 'other') {
+                finalReason = `Autre: ${reportDetails}`;
+            }
+
+            await set(newReportRef, {
+                resourceId: resourceId,
+                resourceTitle: resource.title,
+                reporterId: user.uid,
+                reporterName: profile?.displayName || user.email || 'Anonyme',
+                reason: finalReason,
+                timestamp: Date.now(),
+                status: 'pending'
+            });
+
+            setIsReportDialogOpen(false);
+            setReportReason('spam');
+            setReportDetails('');
+            alert('Signalement envoyé avec succès. Merci pour votre aide !');
+        } catch (err) {
+            console.error('Error submitting report:', err);
+            alert('Erreur lors de lenvoi du signalement.');
+        } finally {
+            setIsSubmittingReport(false);
         }
     };
 
@@ -221,13 +320,88 @@ export default function ResourcePage() {
     const downloadUrl = ensureProtocol(resource.url || resource.link || resource.file);
 
     return (
-        <main className="min-h-screen bg-white py-8 px-4">
+        <main className="min-h-screen bg-slate-50/50 py-8 px-4">
             <div className="max-w-4xl mx-auto space-y-6">
-                <Button variant="ghost" asChild size="sm">
-                    <Link href="/browse">← Retour aux ressources</Link>
-                </Button>
+                <div className="flex justify-between items-center">
+                    <Button variant="ghost" asChild size="sm">
+                        <Link href="/browse">← Retour aux ressources</Link>
+                    </Button>
 
-                <Card className="shadow-md">
+                    {user && (
+                        <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive gap-2 transition-colors">
+                                    <Flag className="w-4 h-4" />
+                                    <span>Signaler</span>
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2 text-destructive">
+                                        <AlertTriangle className="w-5 h-5" />
+                                        Signaler cette ressource
+                                    </DialogTitle>
+                                    <DialogDescription>
+                                        Pourquoi signalez-vous "{resource.title}" ? Notre équipe examinera ce contenu.
+                                    </DialogDescription>
+                                </DialogHeader>
+
+                                <div className="py-4">
+                                    <RadioGroup value={reportReason} onValueChange={setReportReason} className="space-y-3">
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="spam" id="spam" />
+                                            <Label htmlFor="spam">Spam ou contenu promotionnel</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="inappropriate" id="inappropriate" />
+                                            <Label htmlFor="inappropriate">Contenu inapproprié ou offensant</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="copyright" id="copyright" />
+                                            <Label htmlFor="copyright">Violation des droits d'auteur</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="irrelevant" id="irrelevant" />
+                                            <Label htmlFor="irrelevant">Document hors sujet ou incorrect</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="broken_link" id="broken_link" />
+                                            <Label htmlFor="broken_link">Le lien est cassé ou introuvable</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="other" id="other" />
+                                            <Label htmlFor="other">Autre raison</Label>
+                                        </div>
+                                    </RadioGroup>
+
+                                    {reportReason === 'other' && (
+                                        <div className="mt-4">
+                                            <Label htmlFor="details" className="mb-2 block text-sm">Précisez votre raison</Label>
+                                            <Textarea
+                                                id="details"
+                                                placeholder="Décrivez le problème..."
+                                                value={reportDetails}
+                                                onChange={(e) => setReportDetails(e.target.value)}
+                                                className="min-h-[80px]"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setIsReportDialogOpen(false)} disabled={isSubmittingReport}>
+                                        Annuler
+                                    </Button>
+                                    <Button variant="destructive" onClick={handleReportSubmit} disabled={isSubmittingReport || (reportReason === 'other' && !reportDetails.trim())}>
+                                        {isSubmittingReport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                        Envoyer le signalement
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    )}
+                </div>
+
+                <Card className="shadow-sm border-0 rounded-2xl overflow-hidden">
                     <CardHeader className="pb-4">
                         <div className="space-y-4">
                             <div>
@@ -260,6 +434,86 @@ export default function ResourcePage() {
                         {resource.description && (
                             <div className="text-sm text-slate-700 leading-relaxed">
                                 {resource.description}
+                            </div>
+                        )}
+
+                        {getYouTubeEmbedUrl(downloadUrl) && (
+                            <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-sm">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src={getYouTubeEmbedUrl(downloadUrl)}
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                        )}
+
+                        {!getYouTubeEmbedUrl(downloadUrl) && isPdfUrl(downloadUrl) && (
+                            <div className="w-full h-[60vh] sm:h-[600px] md:h-[700px] rounded-xl overflow-hidden border shadow-sm bg-slate-50 transition-all hover:shadow-md">
+                                <object
+                                    data={downloadUrl}
+                                    type="application/pdf"
+                                    width="100%"
+                                    height="100%"
+                                >
+                                    <iframe
+                                        width="100%"
+                                        height="100%"
+                                        src={downloadUrl}
+                                        title="PDF viewer"
+                                        frameBorder="0"
+                                    >
+                                        <div className="flex flex-col items-center justify-center h-full p-6 text-center text-slate-500 bg-slate-50/50">
+                                            <FileText className="w-12 h-12 mb-3 text-slate-300" />
+                                            <p className="mb-4">Votre navigateur ne supporte pas l'affichage direct des PDF.</p>
+                                            <Button asChild>
+                                                <a href={downloadUrl} target="_blank" rel="noopener noreferrer" className="gap-2">
+                                                    <Download className="w-4 h-4" />
+                                                    Téléchargez le PDF
+                                                </a>
+                                            </Button>
+                                        </div>
+                                    </iframe>
+                                </object>
+                            </div>
+                        )}
+
+                        {!getYouTubeEmbedUrl(downloadUrl) && !isPdfUrl(downloadUrl) && getGoogleWorkspaceEmbedUrl(downloadUrl) && (
+                            <div className="w-full h-[60vh] sm:h-[600px] md:h-[700px] rounded-xl overflow-hidden border shadow-sm bg-slate-50 transition-all hover:shadow-md">
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    src={getGoogleWorkspaceEmbedUrl(downloadUrl)}
+                                    title="Google Workspace viewer"
+                                    frameBorder="0"
+                                    allowFullScreen
+                                ></iframe>
+                            </div>
+                        )}
+
+                        {/* Fallback for generic links (Not YouTube, Not PDF, Not Google Workspace) */}
+                        {downloadUrl && !getYouTubeEmbedUrl(downloadUrl) && !isPdfUrl(downloadUrl) && !getGoogleWorkspaceEmbedUrl(downloadUrl) && resource.type === 'link' && (
+                            <div className="border rounded-xl p-5 sm:p-6 bg-slate-50 hover:bg-slate-100/80 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 sm:gap-4 shadow-sm hover:shadow-md mt-6">
+                                <div className="flex items-start sm:items-center gap-4 w-full sm:w-auto">
+                                    <div className="p-3 bg-primary/10 rounded-full text-primary shrink-0 mt-1 sm:mt-0">
+                                        <LinkIcon className="w-6 h-6" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-semibold text-slate-900 mb-1 text-base sm:text-lg">Lien externe</h4>
+                                        <p className="text-sm text-slate-500 truncate w-full max-w-[200px] xs:max-w-xs sm:max-w-sm md:max-w-md">
+                                            {downloadUrl}
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button asChild className="w-full sm:w-auto shrink-0 gap-2 font-medium">
+                                    <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="w-4 h-4" />
+                                        Visiter le site
+                                    </a>
+                                </Button>
                             </div>
                         )}
 
@@ -339,22 +593,22 @@ export default function ResourcePage() {
                                     {getParentComments().map((comment) => (
                                         <div key={comment.id} className="space-y-4">
                                             {/* Parent Comment */}
-<div className="border rounded-lg p-3 bg-slate-50">
-                                        <div className="flex items-start gap-3">
-                                            <div className="flex-shrink-0">
-                                                <User className="w-4 h-4 text-slate-400" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="font-semibold text-sm">{comment.authorName}</span>
-                                                    <span className="text-xs text-slate-500">{formatCommentDate(comment.timestamp)}</span>
-                                                </div>
-                                                <p className="text-sm text-slate-700 mb-2">{comment.text}</p>
-                                                {user && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-xs h-auto p-0 text-primary hover:bg-transparent"
+                                            <div className="border rounded-lg p-3 bg-slate-50">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="flex-shrink-0">
+                                                        <User className="w-4 h-4 text-slate-400" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="font-semibold text-sm">{comment.authorName}</span>
+                                                            <span className="text-xs text-slate-500">{formatCommentDate(comment.timestamp)}</span>
+                                                        </div>
+                                                        <p className="text-sm text-slate-700 mb-2">{comment.text}</p>
+                                                        {user && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-xs h-auto p-0 text-primary hover:bg-transparent"
                                                                 onClick={() => setExpandedReplies(prev => ({ ...prev, [comment.id]: !prev[comment.id] }))}
                                                             >
                                                                 Répondre
