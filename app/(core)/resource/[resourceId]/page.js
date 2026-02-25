@@ -260,6 +260,27 @@ export default function ResourcePage() {
         }
     };
 
+    const handleShare = async () => {
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            alert('Lien copié dans le presse-papiers !');
+        } catch (err) {
+            console.error('Failed to copy link: ', err);
+            // Fallback for older browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = window.location.href;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                alert('Lien copié dans le presse-papiers !');
+            } catch (fallbackErr) {
+                console.error('Fallback copy failed', fallbackErr);
+            }
+            document.body.removeChild(textArea);
+        }
+    };
+
     const handleReportSubmit = async () => {
         if (!user) {
             alert('Veuillez vous connecter pour signaler une ressource');
@@ -322,83 +343,90 @@ export default function ResourcePage() {
     return (
         <main className="min-h-screen bg-slate-50/50 py-8 px-4">
             <div className="max-w-4xl mx-auto space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center w-full">
                     <Button variant="ghost" asChild size="sm">
-                        <Link href="/browse">← Retour aux ressources</Link>
+                        <Link href="/browse">← Retour</Link>
                     </Button>
 
-                    {user && (
-                        <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive gap-2 transition-colors">
-                                    <Flag className="w-4 h-4" />
-                                    <span>Signaler</span>
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent className="sm:max-w-md">
-                                <DialogHeader>
-                                    <DialogTitle className="flex items-center gap-2 text-destructive">
-                                        <AlertTriangle className="w-5 h-5" />
-                                        Signaler cette ressource
-                                    </DialogTitle>
-                                    <DialogDescription>
-                                        Pourquoi signalez-vous "{resource.title}" ? Notre équipe examinera ce contenu.
-                                    </DialogDescription>
-                                </DialogHeader>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                        <Button variant="ghost" size="sm" onClick={handleShare} className="text-muted-foreground hover:text-primary gap-1 sm:gap-2 transition-colors">
+                            <Share2 className="w-4 h-4" />
+                            <span className="hidden sm:inline">Partager</span>
+                        </Button>
 
-                                <div className="py-4">
-                                    <RadioGroup value={reportReason} onValueChange={setReportReason} className="space-y-3">
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="spam" id="spam" />
-                                            <Label htmlFor="spam">Spam ou contenu promotionnel</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="inappropriate" id="inappropriate" />
-                                            <Label htmlFor="inappropriate">Contenu inapproprié ou offensant</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="copyright" id="copyright" />
-                                            <Label htmlFor="copyright">Violation des droits d'auteur</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="irrelevant" id="irrelevant" />
-                                            <Label htmlFor="irrelevant">Document hors sujet ou incorrect</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="broken_link" id="broken_link" />
-                                            <Label htmlFor="broken_link">Le lien est cassé ou introuvable</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="other" id="other" />
-                                            <Label htmlFor="other">Autre raison</Label>
-                                        </div>
-                                    </RadioGroup>
+                        {user && (
+                            <Dialog open={isReportDialogOpen} onOpenChange={setIsReportDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive gap-2 transition-colors">
+                                        <Flag className="w-4 h-4" />
+                                        <span>Signaler</span>
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-md">
+                                    <DialogHeader>
+                                        <DialogTitle className="flex items-center gap-2 text-destructive">
+                                            <AlertTriangle className="w-5 h-5" />
+                                            Signaler cette ressource
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Pourquoi signalez-vous "{resource.title}" ? Notre équipe examinera ce contenu.
+                                        </DialogDescription>
+                                    </DialogHeader>
 
-                                    {reportReason === 'other' && (
-                                        <div className="mt-4">
-                                            <Label htmlFor="details" className="mb-2 block text-sm">Précisez votre raison</Label>
-                                            <Textarea
-                                                id="details"
-                                                placeholder="Décrivez le problème..."
-                                                value={reportDetails}
-                                                onChange={(e) => setReportDetails(e.target.value)}
-                                                className="min-h-[80px]"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsReportDialogOpen(false)} disabled={isSubmittingReport}>
-                                        Annuler
-                                    </Button>
-                                    <Button variant="destructive" onClick={handleReportSubmit} disabled={isSubmittingReport || (reportReason === 'other' && !reportDetails.trim())}>
-                                        {isSubmittingReport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                                        Envoyer le signalement
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-                    )}
+                                    <div className="py-4">
+                                        <RadioGroup value={reportReason} onValueChange={setReportReason} className="space-y-3">
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="spam" id="spam" />
+                                                <Label htmlFor="spam">Spam ou contenu promotionnel</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="inappropriate" id="inappropriate" />
+                                                <Label htmlFor="inappropriate">Contenu inapproprié ou offensant</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="copyright" id="copyright" />
+                                                <Label htmlFor="copyright">Violation des droits d'auteur</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="irrelevant" id="irrelevant" />
+                                                <Label htmlFor="irrelevant">Document hors sujet ou incorrect</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="broken_link" id="broken_link" />
+                                                <Label htmlFor="broken_link">Le lien est cassé ou introuvable</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <RadioGroupItem value="other" id="other" />
+                                                <Label htmlFor="other">Autre raison</Label>
+                                            </div>
+                                        </RadioGroup>
+
+                                        {reportReason === 'other' && (
+                                            <div className="mt-4">
+                                                <Label htmlFor="details" className="mb-2 block text-sm">Précisez votre raison</Label>
+                                                <Textarea
+                                                    id="details"
+                                                    placeholder="Décrivez le problème..."
+                                                    value={reportDetails}
+                                                    onChange={(e) => setReportDetails(e.target.value)}
+                                                    className="min-h-[80px]"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsReportDialogOpen(false)} disabled={isSubmittingReport}>
+                                            Annuler
+                                        </Button>
+                                        <Button variant="destructive" onClick={handleReportSubmit} disabled={isSubmittingReport || (reportReason === 'other' && !reportDetails.trim())}>
+                                            {isSubmittingReport ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                                            Envoyer le signalement
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        )}
+                    </div>
                 </div>
 
                 <Card className="shadow-sm border-0 rounded-2xl overflow-hidden">
@@ -536,14 +564,17 @@ export default function ResourcePage() {
                         )}
                     </CardContent>
 
-                    <CardFooter className="py-4 border-t">
-                        <Button asChild className="gap-2">
+                    <CardFooter className="py-4 border-t flex flex-wrap gap-4 justify-between items-center">
+                        <Button asChild className="gap-2 flex-1 sm:flex-none">
                             <a href={downloadUrl} target="_blank" rel="noopener noreferrer">
                                 {resource.type === 'link' ? <ExternalLink className="w-4 h-4" /> : resource.type === 'video' ? <Play className="w-4 h-4" /> : <Download className="w-4 h-4" />}
                                 {resource.type === 'link' ? 'Accéder' : resource.type === 'video' ? 'Ouvrir' : 'Télécharger'}
                             </a>
                         </Button>
-                        {/* Share button functionality could be added later */}
+                        <Button variant="outline" size="sm" onClick={handleShare} className="gap-2 text-slate-600 hover:text-primary flex-1 sm:flex-none">
+                            <Share2 className="w-4 h-4" />
+                            Partager
+                        </Button>
                     </CardFooter>
                 </Card>
 
