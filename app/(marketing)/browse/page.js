@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Badge, Loader2, FileText, Video, ImageIcon, Link as LinkIcon, ArrowRight, FolderOpen, User } from 'lucide-react';
+import { Badge, Loader2, FileText, Video, ImageIcon, Link as LinkIcon, ArrowRight, FolderOpen, User, Star } from 'lucide-react';
 
 export default function BrowsePage() {
     const searchParams = useSearchParams();
@@ -167,6 +167,30 @@ export default function BrowsePage() {
         return staticDb.fields.find(f => f.id === fieldId)?.name || fieldId;
     };
 
+    const renderRating = (resource) => {
+        const average = resource.ratingAverage;
+        const count = resource.ratingCount || 0;
+        if (!average || count === 0) return null;
+
+        const rounded = Math.round(average * 10) / 10;
+
+        return (
+            <div className="flex items-center gap-1 mt-1.5">
+                <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                        <Star
+                            key={value}
+                            className={`w-3 h-3 ${value <= Math.round(average) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300'}`}
+                        />
+                    ))}
+                </div>
+                <span className="text-[11px] text-slate-500">
+                    {rounded.toFixed(1)} ({count})
+                </span>
+            </div>
+        );
+    };
+
     return (
         <main className="container py-12">
             <section className="mb-12 text-center">
@@ -312,11 +336,14 @@ export default function BrowsePage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors line-clamp-2 leading-snug">{resource.title}</h3>
-                                                <div className="flex flex-wrap gap-1 mt-1.5">
-                                                    <span className="text-[10px] font-bold uppercase text-slate-400">{resource.type}</span>
-                                                    {resource.docType && (
-                                                        <span className="text-[10px] font-bold uppercase text-primary">· {resource.docType}</span>
-                                                    )}
+                                                <div className="flex flex-col mt-1.5 gap-1">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        <span className="text-[10px] font-bold uppercase text-slate-400">{resource.type}</span>
+                                                        {resource.docType && (
+                                                            <span className="text-[10px] font-bold uppercase text-primary">· {resource.docType}</span>
+                                                        )}
+                                                    </div>
+                                                    {renderRating(resource)}
                                                 </div>
                                             </div>
                                         </div>

@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { db, ref, get, set, push } from '@/lib/firebase';
+import { db, ref, get, set, push, update } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileText, Video, Image as ImageIcon, Link as LinkIcon, Download, ExternalLink, User, Share2, GraduationCap, Play, MessageCircle, Send, X, Flag, AlertTriangle } from 'lucide-react';
+import { Loader2, FileText, Video, Image as ImageIcon, Link as LinkIcon, Download, ExternalLink, User, Share2, GraduationCap, Play, MessageCircle, Send, X, Flag, AlertTriangle, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -34,12 +34,24 @@ export default function ResourcePage() {
     const [reportDetails, setReportDetails] = useState('');
     const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
+    // Rating state (per-user rating + optional private review)
+    const [userRating, setUserRating] = useState(0);
+    const [userReview, setUserReview] = useState('');
+    const [isLoadingRating, setIsLoadingRating] = useState(false);
+    const [isSavingRating, setIsSavingRating] = useState(false);
+
     useEffect(() => {
         if (resourceId) {
             fetchResource();
             fetchComments();
         }
     }, [resourceId]);
+
+    useEffect(() => {
+        if (resourceId && user) {
+            fetchUserRating();
+        }
+    }, [resourceId, user]);
 
     const fetchResource = async () => {
         try {
@@ -86,6 +98,27 @@ export default function ResourcePage() {
         } catch (err) {
             console.error('Error fetching comments:', err);
             setComments([]);
+        }
+    };
+
+    const fetchUserRating = async () => {
+        if (!user) return;
+        try {
+            setIsLoadingRating(true);
+            const ratingRef = ref(db, `resources/${resourceId}/ratings/${user.uid}`);
+            const snapshot = await get(ratingRef);
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                setUserRating(data.rating || 0);
+                setUserReview(data.review || '');
+            } else {
+                setUserRating(0);
+                setUserReview('');
+            }
+        } catch (err) {
+            console.error('Error fetching user rating:', err);
+        } finally {
+            setIsLoadingRating(false);
         }
     };
 
@@ -319,6 +352,66 @@ export default function ResourcePage() {
         }
     };
 
+    const handleSaveRating = async () => {
+        if (!user) {
+            alert('Veuillez vous connecter pour noter cette ressource');
+            return;
+        }
+
+        if (!userRating || userRating < 1 || userRating > 5) {
+            alert('Veuillez choisir une note entre 1 et 5 étoiles.');
+            return;
+        }
+
+        try {
+            setIsSavingRating(true);
+            const ratingRef = ref(db, `resources/${resourceId}/ratings/${user.uid}`);
+            const now = Date.now();
+
+            await set(ratingRef, {
+                rating: userRating,
+                review: userReview || '',
+                userId: user.uid,
+                userName: profile?.displayName || user.email || 'Utilisateur',
+                updatedAt: now,
+                createdAt: now,
+            });
+
+            // Recompute average and count
+            const allRatingsRef = ref(db, `resources/${resourceId}/ratings`);
+            const snap = await get(allRatingsRef);
+
+            let avg = userRating;
+            let count = 1;
+
+            if (snap.exists()) {
+                const data = snap.val();
+                const values = Object.values(data);
+                count = values.length;
+                avg = values.reduce((sum, r) => sum + (r.rating || 0), 0) / count;
+            }
+
+            const roundedAvg = Math.round(avg * 10) / 10;
+
+            // Persist denormalized fields
+            const resourceRef = ref(db, `resources/${resourceId}`);
+            await update(resourceRef, {
+                ratingAverage: roundedAvg,
+                ratingCount: count,
+            });
+
+            // Update local resource state so UI reflects latest numbers
+            setResource((prev) => prev ? { ...prev, ratingAverage: roundedAvg, ratingCount: count } : prev);
+
+            alert('Votre note a bien été enregistrée. Merci pour votre retour !');
+        } catch (err) {
+            console.error('Error saving rating:', err);
+            alert('Erreur lors de lenregistrement de votre note.');
+        } finally {
+            setIsSavingRating(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -452,6 +545,21 @@ export default function ResourcePage() {
                                     )}
                                     {resource.createdAt && (
                                         <span>{new Date(resource.createdAt).toLocaleDateString('fr-FR')}</span>
+                                    )}
+                                    {resource.ratingAverage && resource.ratingCount > 0 && (
+                                        <div className="flex items-center gap-1 text-xs text-slate-600">
+                                            <div className="flex items-center gap-0.5">
+                                                {[1, 2, 3, 4, 5].map((value) => (
+                                                    <Star
+                                                        key={value}
+                                                        className={`w-3 h-3 ${value <= Math.round(resource.ratingAverage) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300'}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span className="ml-1">
+                                                {Math.round(resource.ratingAverage * 10) / 10} ({resource.ratingCount})
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -703,6 +811,78 @@ export default function ResourcePage() {
                                 </div>
                             )}
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* User rating input (bottom of page) */}
+                <Card className="shadow-sm">
+                    <CardHeader className="border-b pb-3">
+                        <CardTitle className="text-base">
+                            Note de la ressource
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="py-4 space-y-3">
+                        <p className="text-xs text-slate-600">
+                            Ta note s&apos;affiche en moyenne d&apos;étoiles pour tout le monde, mais ton commentaire écrit reste privé pour les admins.
+                        </p>
+                        {user ? (
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    {[1, 2, 3, 4, 5].map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            className="focus:outline-none"
+                                            onClick={() => setUserRating(value)}
+                                            disabled={isSavingRating}
+                                        >
+                                            <Star
+                                                className={`w-6 h-6 ${
+                                                    value <= userRating
+                                                        ? 'text-yellow-500 fill-yellow-500'
+                                                        : 'text-slate-300'
+                                                }`}
+                                            />
+                                        </button>
+                                    ))}
+                                    {isLoadingRating && (
+                                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground ml-2" />
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="user-review" className="text-xs text-slate-600">
+                                        Avis (optionnel, uniquement pour les admins)
+                                    </Label>
+                                    <Textarea
+                                        id="user-review"
+                                        value={userReview}
+                                        onChange={(e) => setUserReview(e.target.value)}
+                                        rows={2}
+                                        className="text-sm"
+                                        placeholder="Partage plus de détails avec l'équipe (problèmes, qualité, suggestions...)."
+                                        disabled={isSavingRating}
+                                    />
+                                </div>
+                                <Button
+                                    size="sm"
+                                    className="gap-2"
+                                    onClick={handleSaveRating}
+                                    disabled={isSavingRating || !userRating}
+                                >
+                                    {isSavingRating && (
+                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                    )}
+                                    Enregistrer ma note
+                                </Button>
+                            </div>
+                        ) : (
+                            <p className="text-xs text-slate-600">
+                                <Link href="/login" className="text-primary font-semibold hover:underline">
+                                    Connecte-toi
+                                </Link>{' '}
+                                pour noter cette ressource.
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

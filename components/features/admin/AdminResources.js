@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { db, ref, update, remove, get, set } from '@/lib/firebase';
+import { db, ref, update, remove, get } from '@/lib/firebase';
 import {
     Table,
     TableBody,
@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Search, CheckCircle2, Eye, Trash2, Edit2, Loader2, Link2 } from 'lucide-react';
+import { Search, CheckCircle2, Eye, Trash2, Edit2, Loader2, Link2, Star, MessageCircle } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -57,10 +57,42 @@ export default function AdminResources({ resources }) {
     const [itemToLink, setItemToLink] = useState(null);
     const [selectedFields, setSelectedFields] = useState([]);
 
+    // Ratings state (admin-only view of user feedback)
+    const [ratingModalOpen, setRatingModalOpen] = useState(false);
+    const [itemToRate, setItemToRate] = useState(null);
+    const [currentRatings, setCurrentRatings] = useState([]);
+
     const filteredResources = resources.filter(r =>
         r.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.module?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const openRatingModal = async (resource) => {
+        setItemToRate(resource);
+        setRatingModalOpen(true);
+
+        try {
+            const ratingsRef = ref(db, `resources/${resource.id}/ratings`);
+            const snap = await get(ratingsRef);
+
+            if (snap.exists()) {
+                const data = snap.val();
+                const list = Object.entries(data).map(([userId, value]) => ({
+                    userId,
+                    ...value,
+                }));
+
+                // Sort newest first
+                list.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+                setCurrentRatings(list);
+            } else {
+                setCurrentRatings([]);
+            }
+        } catch (err) {
+            console.error('Failed to load ratings', err);
+            setCurrentRatings([]);
+        }
+    };
 
     const handleApproveResource = async (resource) => {
         try {
@@ -366,6 +398,7 @@ export default function AdminResources({ resources }) {
                             <TableHead className="font-black uppercase text-[10px] tracking-widest">Module</TableHead>
                             <TableHead className="font-black uppercase text-[10px] tracking-widest">Type</TableHead>
                             <TableHead className="font-black uppercase text-[10px] tracking-widest">Auteur</TableHead>
+                            <TableHead className="font-black uppercase text-[10px] tracking-widest">Note</TableHead>
                             <TableHead className="font-black uppercase text-[10px] tracking-widest">Statut</TableHead>
                             <TableHead className="text-right font-black uppercase text-[10px] tracking-widest">Actions</TableHead>
                         </TableRow>
@@ -379,6 +412,31 @@ export default function AdminResources({ resources }) {
                                     {res.docType && <Badge variant="secondary" className="text-[9px] font-bold">{res.docType}</Badge>}
                                 </TableCell>
                                 <TableCell className="text-xs font-bold">{res.authorName || 'Anonyme'}</TableCell>
+                                <TableCell>
+                                    {(() => {
+                                        const average = res.ratingAverage;
+                                        const count = res.ratingCount || 0;
+                                        if (!average || count === 0) {
+                                            return <span className="text-[10px] text-muted-foreground">Aucune note</span>;
+                                        }
+                                        const rounded = Math.round(average * 10) / 10;
+                                        return (
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-1">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <Star
+                                                            key={star}
+                                                            className={`w-3 h-3 ${star <= Math.round(average) ? 'text-yellow-500 fill-yellow-500' : 'text-slate-300'}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    {rounded.toFixed(1)} / 5 · {count} avis
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
+                                </TableCell>
                                 <TableCell>
                                     {res.unverified ? (
                                         <Badge variant="destructive" className="text-[8px] font-black uppercase tracking-tighter">En attente</Badge>
@@ -398,6 +456,15 @@ export default function AdminResources({ resources }) {
                                         </Button>
                                         <Button size="sm" variant="outline" className="h-8 px-2 text-primary border-primary/10 hover:bg-primary/5" onClick={() => handleLinkResource(res)} title="Lier à d'autres filières">
                                             <Link2 className="w-4 h-4" />
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-8 px-2 text-amber-600 border-amber-100 hover:bg-amber-50"
+                                            onClick={() => openRatingModal(res)}
+                                            title="Voir les avis des étudiants"
+                                        >
+                                            <Star className="w-4 h-4" />
                                         </Button>
                                         <Button size="sm" variant="outline" className="h-8 px-2" asChild>
                                             <a href={res.url || res.link || res.file} target="_blank"><Eye className="w-4 h-4" /></a>
@@ -421,6 +488,89 @@ export default function AdminResources({ resources }) {
                 reason={rejectionReason}
                 setReason={setRejectionReason}
             />
+
+            {/* Rating Modal (admin-only, shows user feedback) */}
+            <Dialog open={ratingModalOpen} onOpenChange={setRatingModalOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>Notation de la ressource</DialogTitle>
+                        <DialogDescription>
+                            Attribuez une note (1 à 5 étoiles) et laissez un avis interne visible uniquement par les administrateurs.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                        {itemToRate && (
+                            <div className="rounded-lg border bg-slate-50 px-4 py-3">
+                                <p className="text-sm font-semibold">{itemToRate.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {itemToRate.module} {itemToRate.docType ? `· ${itemToRate.docType}` : ''}
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <MessageCircle className="w-4 h-4 text-muted-foreground" />
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                                    Avis des étudiants (privé)
+                                </p>
+                            </div>
+                            {currentRatings.length === 0 ? (
+                                <p className="text-xs text-muted-foreground">
+                                    Aucun avis enregistré pour cette ressource.
+                                </p>
+                            ) : (
+                                <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                                    {currentRatings.map((r) => (
+                                        <div
+                                            key={`${r.userId}-${r.updatedAt || r.createdAt || ''}`}
+                                            className="border rounded-lg px-3 py-2 bg-slate-50"
+                                        >
+                                            <div className="flex items-center justify-between mb-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-semibold">
+                                                        {r.userName || r.adminName || 'Utilisateur'}
+                                                    </span>
+                                                    <div className="flex items-center gap-0.5">
+                                                        {[1, 2, 3, 4, 5].map((value) => (
+                                                            <Star
+                                                                key={value}
+                                                                className={`w-3 h-3 ${
+                                                                    value <= (r.rating || 0)
+                                                                        ? 'text-yellow-500 fill-yellow-500'
+                                                                        : 'text-slate-300'
+                                                                }`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {r.updatedAt && (
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        {new Date(r.updatedAt).toLocaleDateString('fr-FR')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {r.review && (
+                                                <p className="text-xs text-slate-700 whitespace-pre-wrap">
+                                                    {r.review}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setRatingModalOpen(false)}
+                        >
+                            Fermer
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Edit Modal */}
             <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
