@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ArrowLeft, AlertCircle, CheckCircle2, FileText, Megaphone, Calendar, Edit, Trash2, Plus, Upload, Ticket, Users, LayoutDashboard, Settings, LineChart, Menu, X, Share2, ClipboardList, Scan } from 'lucide-react';
+import { Loader2, ArrowLeft, AlertCircle, CheckCircle2, FileText, Megaphone, Calendar, Edit, Trash2, Plus, Upload, Ticket, Users, LayoutDashboard, Settings, LineChart, Menu, X, Share2, ClipboardList, Scan, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { sendPrivateNotification, NOTIF_TYPES } from '@/lib/notifications';
@@ -67,6 +67,7 @@ export default function ClubAdminPage() {
 
     // Tickets
     const [tickets, setTickets] = useState([]);
+    const [sendingRemindersForEventId, setSendingRemindersForEventId] = useState(null);
 
     // Custom Forms
     const [forms, setForms] = useState([]);
@@ -826,6 +827,87 @@ export default function ClubAdminPage() {
         }
     };
 
+    // Manual event reminders (no automation – triggered from admin UI)
+    const handleSendEventReminders = async (eventId) => {
+        if (!confirm("Envoyer un email de rappel à tous les participants inscrits à cet événement ?")) return;
+
+        try {
+            setSendingRemindersForEventId(eventId);
+            setMessage('');
+
+            const event = events.find(e => e.id === eventId);
+            if (!event) {
+                throw new Error("Événement introuvable");
+            }
+
+            const relatedTickets = tickets.filter(t => t.eventId === eventId);
+            if (relatedTickets.length === 0) {
+                setMessage("Aucun participant inscrit pour cet événement.");
+                return;
+            }
+
+            const notifiedEmails = new Set();
+            let sentCount = 0;
+
+            for (const ticket of relatedTickets) {
+                let recipientEmail = ticket.userEmail;
+
+                // Fallback: fetch from users/{userId} if needed
+                if ((!recipientEmail || recipientEmail === 'N/A') && ticket.userId && ticket.userId !== 'guest') {
+                    try {
+                        const userSnap = await get(ref(db, `users/${ticket.userId}`));
+                        if (userSnap.exists()) {
+                            recipientEmail = userSnap.val().email;
+                        }
+                    } catch (err) {
+                        console.error("Failed to fetch user for reminder:", err);
+                    }
+                }
+
+                if (!recipientEmail || notifiedEmails.has(recipientEmail)) continue;
+                notifiedEmails.add(recipientEmail);
+
+                const subject = `Rappel : ${event.title}`;
+                const html = `
+                    <p>Bonjour,</p>
+                    <p>Ceci est un rappel pour l'événement <strong>${event.title}</strong> organisé par <strong>${club?.name || 'votre club'}</strong>.</p>
+                    <p>
+                        Date : ${event.date || ''} ${event.time || ''}<br/>
+                        Lieu : ${event.location || 'Campus'}
+                    </p>
+                    <p>À très bientôt,</p>
+                    <p><strong>${club?.name || 'Club'}</strong></p>
+                `;
+
+                try {
+                    await fetch('/api/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: recipientEmail,
+                            subject,
+                            html
+                        })
+                    });
+                    sentCount++;
+                } catch (emailErr) {
+                    console.error("Failed to send reminder email:", emailErr);
+                }
+            }
+
+            if (sentCount > 0) {
+                setMessage(`Rappels envoyés à ${sentCount} participant(s).`);
+            } else {
+                setMessage("Aucun email valide trouvé pour l'envoi des rappels.");
+            }
+        } catch (err) {
+            console.error("Error while sending event reminders:", err);
+            setMessage("Erreur lors de l'envoi des rappels.");
+        } finally {
+            setSendingRemindersForEventId(null);
+        }
+    };
+
     // Update org chart items state handler
     const handleOrgChartItemChange = (id, field, value) => {
         setOrgChartItems(prev => {
@@ -1386,6 +1468,24 @@ export default function ClubAdminPage() {
                                                                     // Filter logic would go here
                                                                 }}>
                                                                     Voir Participants
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleSendEventReminders(event.id)}
+                                                                    disabled={sendingRemindersForEventId === event.id}
+                                                                >
+                                                                    {sendingRemindersForEventId === event.id ? (
+                                                                        <>
+                                                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                                            Envoi...
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Bell className="w-4 h-4 mr-2" />
+                                                                            Envoyer les rappels
+                                                                        </>
+                                                                    )}
                                                                 </Button>
                                                                 <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteEvent(event.id)}>
                                                                     <Trash2 className="w-4 h-4" />

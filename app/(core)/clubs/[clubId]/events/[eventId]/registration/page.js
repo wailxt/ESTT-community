@@ -116,6 +116,23 @@ export default function EventRegistrationPage() {
 
             await set(ticketRef, ticketData);
 
+            // 3.b. Store RSVP in eventAttendees for future features (history, recaps, manual reminders, etc.)
+            try {
+                if (user?.uid) {
+                    const attendeeRef = ref(db, `eventAttendees/${eventId}/${user.uid}`);
+                    await set(attendeeRef, {
+                        status: 'going',
+                        rsvpAt: Date.now(),
+                        ticketId,
+                        eventId,
+                        clubId
+                    });
+                }
+            } catch (attendeeErr) {
+                console.error("Failed to record event attendee:", attendeeErr);
+                // Do not block the registration flow if attendee logging fails
+            }
+
             // 4. Handle Payment or Standard Registration
             if (event.price > 0) {
                 // Redirect to Stripe Checkout

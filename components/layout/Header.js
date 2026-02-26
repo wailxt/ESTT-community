@@ -50,7 +50,7 @@ export default function Header() {
 
     const navItems = [
         { href: '/', label: 'Accueil' },
-        { href: '/ads-portal', label: 'Annonces' },
+        { href: '/events', label: 'Événements' },
         { href: '/contribute', label: 'Contribuer' },
     ];
 
