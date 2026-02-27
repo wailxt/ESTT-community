@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone } from 'lucide-react';
+import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText } from 'lucide-react';
 import { cn, getUserLevel } from '@/lib/utils';
 
 export default function PublicProfilePage() {
@@ -34,6 +34,8 @@ export default function PublicProfilePage() {
         filiere: '',
         startYear: ''
     });
+    const [favorites, setFavorites] = useState([]);
+    const [loadingFavorites, setLoadingFavorites] = useState(false);
 
     useEffect(() => {
         if (!id) return;
@@ -64,6 +66,38 @@ export default function PublicProfilePage() {
             });
         }
     }, [profile]);
+
+    // Fetch saved resources for own profile
+    useEffect(() => {
+        if (!id || !currentUser || currentUser.uid !== id || !db) return;
+
+        const fetchFavorites = async () => {
+            setLoadingFavorites(true);
+            try {
+                const favRef = ref(db, `userFavorites/${id}`);
+                const snap = await get(favRef);
+                if (snap.exists()) {
+                    const data = snap.val();
+                    const list = Object.entries(data).map(([favId, value]) => ({
+                        id: favId,
+                        ...value,
+                    }));
+                    // Newest saved first
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    setFavorites(list);
+                } else {
+                    setFavorites([]);
+                }
+            } catch (e) {
+                console.error('Error fetching favorites:', e);
+                setFavorites([]);
+            } finally {
+                setLoadingFavorites(false);
+            }
+        };
+
+        fetchFavorites();
+    }, [id, currentUser]);
 
     useEffect(() => {
         if (!id || !currentUser || currentUser.uid !== id) return;
@@ -347,39 +381,128 @@ export default function PublicProfilePage() {
                         )}
                     </div>
 
-                    {/* Right Column */}
-                    <div className="lg:col-span-2 space-y-8">
+                        {/* Right Column */}
+                        <div className="lg:col-span-2 space-y-8">
 
-                        {/* Contributions */}
+                        {/* Contributions (horizontal scroll) */}
                         <section>
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-base font-bold text-slate-900">Contributions</h2>
-                                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">{contributionsCount}</span>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-base font-bold text-slate-900">Contributions</h2>
+                                    <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                                        {contributionsCount}
+                                    </span>
+                                </div>
+                                {contributionsCount > 0 && (
+                                    <Link
+                                        href={`/profile/${id}/contributions`}
+                                        className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline"
+                                    >
+                                        Tout voir
+                                        <ArrowRight className="w-3 h-3" />
+                                    </Link>
+                                )}
                             </div>
-                            <div className="grid gap-2">
-                                {profile.contributions ? (
-                                    Object.entries(profile.contributions)
+                            {profile.contributions ? (
+                                <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
+                                    {Object.entries(profile.contributions)
                                         .filter(([_, item]) => !item.unverified)
                                         .sort((a, b) => b[1].timestamp - a[1].timestamp)
                                         .map(([cid, item]) => (
-                                            <div key={cid} className="group flex items-center justify-between p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors bg-white">
+                                            <Link
+                                                key={cid}
+                                                href={`/resource/${cid}`}
+                                                className="min-w-[260px] max-w-xs group p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors bg-white flex flex-col justify-between"
+                                            >
                                                 <div>
-                                                    <h3 className="font-semibold text-sm text-slate-900 group-hover:text-primary transition-colors">{item.title}</h3>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-xs font-bold text-primary">{item.module || 'Ressource'}</span>
-                                                        <span className="text-xs text-slate-400">· {new Date(item.timestamp).toLocaleDateString()}</span>
+                                                    <h3 className="font-semibold text-sm text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                                                        {item.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 mt-2 text-xs">
+                                                        <span className="font-bold text-primary">
+                                                            {item.module || 'Ressource'}
+                                                        </span>
+                                                        <span className="text-slate-400">
+                                                            · {new Date(item.timestamp).toLocaleDateString()}
+                                                        </span>
                                                     </div>
                                                 </div>
-                                                <Share2 className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
-                                            </div>
-                                        ))
-                                ) : (
+                                            </Link>
+                                        ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl">
+                                    <p className="text-slate-400 text-sm">Aucune contribution pour le moment.</p>
+                                </div>
+                            )}
+                        </section>
+
+                        {/* Saved resources (own profile) */}
+                        {currentUser && currentUser.uid === id && (
+                            <section>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-base font-bold text-slate-900">Ressources enregistrées</h2>
+                                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                                            {favorites.length}
+                                        </span>
+                                    </div>
+                                    {favorites.length > 0 && (
+                                        <Link
+                                            href={`/profile/${id}/favorites`}
+                                            className="text-xs font-semibold text-primary flex items-center gap-1 hover:underline"
+                                        >
+                                            Tout voir
+                                            <ArrowRight className="w-3 h-3" />
+                                        </Link>
+                                    )}
+                                </div>
+                                {loadingFavorites ? (
+                                    <div className="flex items-center justify-center py-6">
+                                        <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                                    </div>
+                                ) : favorites.length === 0 ? (
                                     <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl">
-                                        <p className="text-slate-400 text-sm">Aucune contribution pour le moment.</p>
+                                        <p className="text-slate-400 text-sm">
+                                            Aucune ressource enregistrée pour le moment.
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-3 overflow-x-auto pb-3 no-scrollbar">
+                                        {favorites.map((fav) => (
+                                            <Link
+                                                key={fav.id}
+                                                href={`/resource/${fav.resourceId}`}
+                                                className="min-w-[260px] max-w-xs group p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors bg-white flex flex-col justify-between"
+                                            >
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    <div className="p-2 bg-slate-100 rounded-lg text-slate-500 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                                        <FileText className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-sm font-semibold text-slate-900 group-hover:text-primary transition-colors line-clamp-2">
+                                                            {fav.title || 'Ressource'}
+                                                        </h3>
+                                                        <div className="flex flex-wrap gap-1 mt-1 text-[10px] uppercase text-slate-400">
+                                                            {fav.type && <span>{fav.type}</span>}
+                                                            {fav.docType && (
+                                                                <span className="text-primary">· {fav.docType}</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {fav.createdAt && (
+                                                    <div className="mt-auto pt-2 border-t border-slate-100 text-[11px] text-slate-400">
+                                                        Enregistrée le{' '}
+                                                        {new Date(fav.createdAt).toLocaleDateString()}
+                                                    </div>
+                                                )}
+                                            </Link>
+                                        ))}
                                     </div>
                                 )}
-                            </div>
-                        </section>
+                            </section>
+                        )}
 
                         {/* Clubs */}
                         <section>

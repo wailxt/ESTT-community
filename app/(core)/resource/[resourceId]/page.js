@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { db, ref, get, set, push, update } from '@/lib/firebase';
+import { db, ref, get, set, push, update, remove } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, FileText, Video, Image as ImageIcon, Link as LinkIcon, Download, ExternalLink, User, Share2, GraduationCap, Play, MessageCircle, Send, X, Flag, AlertTriangle, Star } from 'lucide-react';
+import { Loader2, FileText, Video, Image as ImageIcon, Link as LinkIcon, Download, ExternalLink, User, Share2, GraduationCap, Play, MessageCircle, Send, X, Flag, AlertTriangle, Star, Bookmark } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -40,6 +40,10 @@ export default function ResourcePage() {
     const [isLoadingRating, setIsLoadingRating] = useState(false);
     const [isSavingRating, setIsSavingRating] = useState(false);
 
+    // Favorites state
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
     useEffect(() => {
         if (resourceId) {
             fetchResource();
@@ -52,6 +56,26 @@ export default function ResourcePage() {
             fetchUserRating();
         }
     }, [resourceId, user]);
+
+    useEffect(() => {
+        const fetchFavorite = async () => {
+            if (!user || !resourceId) {
+                setIsFavorite(false);
+                return;
+            }
+
+            try {
+                const favRef = ref(db, `userFavorites/${user.uid}/${resourceId}`);
+                const snapshot = await get(favRef);
+                setIsFavorite(snapshot.exists());
+            } catch (err) {
+                console.error('Error fetching favorite state:', err);
+                setIsFavorite(false);
+            }
+        };
+
+        fetchFavorite();
+    }, [user, resourceId]);
 
     const fetchResource = async () => {
         try {
@@ -352,6 +376,38 @@ export default function ResourcePage() {
         }
     };
 
+    const handleToggleFavorite = async () => {
+        if (!user) {
+            alert('Connectez-vous pour enregistrer cette ressource dans vos favoris.');
+            return;
+        }
+
+        try {
+            setIsTogglingFavorite(true);
+            const favRef = ref(db, `userFavorites/${user.uid}/${resourceId}`);
+
+            if (isFavorite) {
+                await remove(favRef);
+                setIsFavorite(false);
+            } else {
+                await set(favRef, {
+                    resourceId,
+                    title: resource.title || '',
+                    type: resource.type || '',
+                    docType: resource.docType || '',
+                    field: resource.field || null,
+                    createdAt: Date.now(),
+                });
+                setIsFavorite(true);
+            }
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
+            alert('Erreur lors de la mise à jour de vos favoris.');
+        } finally {
+            setIsTogglingFavorite(false);
+        }
+    };
+
     const handleSaveRating = async () => {
         if (!user) {
             alert('Veuillez vous connecter pour noter cette ressource');
@@ -442,6 +498,27 @@ export default function ResourcePage() {
                     </Button>
 
                     <div className="flex items-center gap-1 sm:gap-2">
+                        {user && (
+                            <Button
+                                variant={isFavorite ? 'default' : 'ghost'}
+                                size="sm"
+                                onClick={handleToggleFavorite}
+                                disabled={isTogglingFavorite}
+                                className={`gap-1 sm:gap-2 transition-colors ${!isFavorite ? 'text-muted-foreground hover:text-primary' : ''}`}
+                            >
+                                {isTogglingFavorite ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Bookmark
+                                        className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`}
+                                    />
+                                )}
+                                <span className="hidden sm:inline">
+                                    {isFavorite ? 'Enregistré' : 'Enregistrer'}
+                                </span>
+                            </Button>
+                        )}
+
                         <Button variant="ghost" size="sm" onClick={handleShare} className="text-muted-foreground hover:text-primary gap-1 sm:gap-2 transition-colors">
                             <Share2 className="w-4 h-4" />
                             <span className="hidden sm:inline">Partager</span>

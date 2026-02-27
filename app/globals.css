@@ -114,3 +114,13 @@
 .spinner {
   @apply w-14 h-14 rounded-full border-[6px] border-black/10 border-t-primary animate-spin;
 }
+
+/* Hide scrollbars but keep scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
