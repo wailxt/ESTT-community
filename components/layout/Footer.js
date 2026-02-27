@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Heart, Github, Globe } from 'lucide-react';
+import LatestReleaseBadge from '../LatestReleaseBadge';
 
 export default function Footer() {
     const pathname = usePathname();
@@ -59,6 +60,7 @@ export default function Footer() {
                     </p>
 
                     <div className="flex flex-col md:flex-row items-center gap-4">
+                        <LatestReleaseBadge />
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                             Projet Open Source — <a href="https://github.com/abdelhakim-sahifa/ESTT-community/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Contribuer sur GitHub</a>
                         </p>
