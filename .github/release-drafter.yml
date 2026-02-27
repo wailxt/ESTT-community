@@ -1,0 +1,71 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'type: feature'
+      - 'feature'
+      - 'feat'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'type: bug'
+      - 'bug'
+      - 'fix'
+  - title: '⚡ Performance Improvements'
+    labels:
+      - 'type: performance'
+      - 'performance'
+      - 'perf'
+  - title: '🎨 Styling'
+    labels:
+      - 'type: style'
+      - 'style'
+  - title: '♻️ Refactoring'
+    labels:
+      - 'type: refactor'
+      - 'refactor'
+  - title: '📚 Documentation'
+    labels:
+      - 'type: docs'
+      - 'docs'
+  - title: '🧪 Testing'
+    labels:
+      - 'type: test'
+      - 'test'
+  - title: '🔧 Maintenance'
+    labels:
+      - 'type: chore'
+      - 'chore'
+      - 'maintenance'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+change-title-escapes: '\<*_&'
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking'
+  minor:
+    labels:
+      - 'minor'
+      - 'feature'
+      - 'feat'
+  patch:
+    labels:
+      - 'patch'
+      - 'bugfix'
+      - 'bug'
+      - 'fix'
+
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPO/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'internal'

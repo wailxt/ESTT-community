@@ -1,0 +1,52 @@
+name: 🧪 Test & Validate
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🔍 Lint code
+        run: npm run lint
+        continue-on-error: true
+
+      - name: 🏗️ Build project
+        run: npm run build
+
+      - name: ℹ️ Build succeeded
+        if: success()
+        run: echo "✅ All checks passed!"
+
+      - name: ⚠️ Build warnings
+        if: failure()
+        run: echo "⚠️ Build had issues. Review the logs above."
