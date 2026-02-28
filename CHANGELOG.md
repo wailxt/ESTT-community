@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.1.1...v1.1.2) (2026-02-28)
+
+
+### Bug Fixes
+
+* trying to resolve github webhook 405 erreur ([1637fc9](https://github.com/abdelhakim-sahifa/ESTT-community/commit/1637fc97d54fa2e1dc816395164950271713e1cd))
+
 ## [1.1.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.1.0...v1.1.1) (2026-02-28)
 
 
