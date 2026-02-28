@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.1.2...v1.1.3) (2026-02-28)
+
+
+### Bug Fixes
+
+* prevent double event registrations by checking existing tickets ([4c43aeb](https://github.com/abdelhakim-sahifa/ESTT-community/commit/4c43aeb5651187b9176bcb61212ff713fb4b71e9))
+
 ## [1.1.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.1.1...v1.1.2) (2026-02-28)
 
 
