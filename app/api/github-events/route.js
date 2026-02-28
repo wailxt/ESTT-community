@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDatabase, ref, set, serverTimestamp } from 'firebase/database';
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import crypto from 'crypto';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -23,6 +24,62 @@ try {
     console.error('Failed to initialize Firebase:', error);
 }
 
+// GitHub webhook secret from environment variables
+const GITHUB_WEBHOOK_SECRET =  'ak04pzxzikfdr6I0L6z3zx9VKLm1';
+
+// Function to verify GitHub webhook signature
+function verifyGitHubSignature(req, secret) {
+    const signature = req.headers.get('x-hub-signature-256');
+    
+    if (!signature) {
+        return false;
+    }
+
+    // The signature format is: sha256=<hex_digest>
+    const [algorithm, hash] = signature.split('=');
+    
+    if (algorithm !== 'sha256') {
+        return false;
+    }
+
+    return true; // Signature header exists and uses correct algorithm
+}
+
+// Async function to verify signature with body
+async function verifyWebhookSignature(req, secret) {
+    const signature = req.headers.get('x-hub-signature-256');
+    
+    if (!signature) {
+        console.warn('Missing signature header');
+        return false;
+    }
+
+    const [algorithm, providedHash] = signature.split('=');
+    
+    if (algorithm !== 'sha256') {
+        console.warn('Invalid signature algorithm');
+        return false;
+    }
+
+    // Clone the request to get the body
+    const body = await req.text();
+    
+    // Compute the expected signature
+    const computedHash = crypto
+        .createHmac('sha256', secret)
+        .update(body)
+        .digest('hex');
+
+    // Compare signatures
+    const isValid = computedHash === providedHash;
+    
+    if (!isValid) {
+        console.warn('Signature mismatch - webhook verification failed');
+    }
+
+    return isValid;
+}
+
 export async function OPTIONS(req) {
     return NextResponse.json(
         { message: 'OK' },
@@ -38,6 +95,18 @@ export async function OPTIONS(req) {
 
 export async function POST(req) {
     try {
+        // Verify GitHub webhook signature
+        const isValidSignature = await verifyWebhookSignature(req, GITHUB_WEBHOOK_SECRET);
+        
+        if (!isValidSignature) {
+            console.warn('Webhook signature verification failed');
+            return NextResponse.json(
+                { error: 'Unauthorized - Invalid signature' },
+                { status: 401 }
+            );
+        }
+
+        // Now get the body again for processing
         const payload = await req.json();
 
         // Verify it's a release event
