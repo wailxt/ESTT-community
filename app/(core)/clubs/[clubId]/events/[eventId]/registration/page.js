@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { db, ref, get, push, set, update, increment } from '@/lib/firebase';
+import { db, ref, get, push, set, update, increment, query, orderByChild, equalTo } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ export default function EventRegistrationPage() {
     const [error, setError] = useState('');
     const [formData, setFormData] = useState({});
     const [generatedTicketId, setGeneratedTicketId] = useState('');
+    const [existingTicket, setExistingTicket] = useState(null);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -47,6 +48,23 @@ export default function EventRegistrationPage() {
                 if (eventSnap.exists()) {
                     const eventData = eventSnap.val();
                     setEvent(eventData);
+
+                    // Check if user is already registered
+                    if (user?.uid) {
+                        const ticketsRef = ref(db, 'tickets');
+                        const ticketsSnap = await get(ticketsRef);
+                        
+                        if (ticketsSnap.exists()) {
+                            const allTickets = ticketsSnap.val();
+                            const userTicketForEvent = Object.entries(allTickets).find(
+                                ([_, ticket]) => ticket.userId === user.uid && ticket.eventId === eventId
+                            );
+                            
+                            if (userTicketForEvent) {
+                                setExistingTicket({ id: userTicketForEvent[0], ...userTicketForEvent[1] });
+                            }
+                        }
+                    }
 
                     // Initialize form data with user info if available
                     const initialData = {};
@@ -208,6 +226,48 @@ export default function EventRegistrationPage() {
 
     const themeColor = club?.themeColor || '#0ea5e9';
     const isFull = event.maxCapacity > 0 && event.registrationCount >= event.maxCapacity;
+
+    // If user is already registered, show their existing ticket
+    if (existingTicket && !success) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center p-6 text-center">
+                <div className="max-w-sm w-full space-y-10 animate-in fade-in zoom-in duration-500">
+                    <div className="space-y-6">
+                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto border border-slate-100 shadow-sm">
+                            <CheckCircle2 className="w-8 h-8 text-green-500" />
+                        </div>
+                        <div className="space-y-2">
+                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Déjà inscrit !</h1>
+                            <p className="text-slate-400 font-medium text-sm">
+                                Vous êtes déjà enregistré pour <span className="text-slate-900 font-semibold">{event.title}</span>.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100 flex items-center gap-4 text-left">
+                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center border border-slate-200 shrink-0">
+                            <Ticket className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <div className="space-y-0.5">
+                            <p className="text-xs font-bold text-slate-900 leading-tight">Votre Ticket</p>
+                            <p className="text-[10px] text-slate-500 leading-relaxed font-medium">ID: {existingTicket.id}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-3 pt-4">
+                        <Button asChild className="w-full h-12 rounded-xl text-sm font-bold transition-all shadow-sm text-white" style={{ backgroundColor: themeColor }}>
+                            <Link href={`/tickets/${existingTicket.id}`}>
+                                Voir mon Ticket 🎉
+                            </Link>
+                        </Button>
+                        <Button variant="ghost" asChild className="text-slate-400 hover:text-slate-900 text-xs font-semibold rounded-xl">
+                            <Link href={`/clubs/${clubId}`}>Retour</Link>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (success) {
         return (
