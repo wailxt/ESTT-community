@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.2.0...v1.2.1) (2026-03-02)
+
+
+### Bug Fixes
+
+* **scanner:** fixed the QR scanner error and updated the validation logic ([8f92d69](https://github.com/abdelhakim-sahifa/ESTT-community/commit/8f92d69daa478b56d47b574838db43ca43c86e98))
+
 # [1.2.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.1.3...v1.2.0) (2026-03-02)
 
 
