@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.2.1...v1.3.0) (2026-03-02)
+
+
+### Features
+
+* Introduce a contributor acknowledgments page, a new footer component, and a latest release badge component. ([0ed5552](https://github.com/abdelhakim-sahifa/ESTT-community/commit/0ed555290a74c3700c606b03f5069f40fcb9e63e))
+
 ## [1.2.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.2.0...v1.2.1) (2026-03-02)
 
 
