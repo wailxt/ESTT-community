@@ -71,8 +71,59 @@ export const AuthProvider = ({ children }) => {
         return sendEmailVerification(user);
     };
 
+    const signInWithGoogle = async () => {
+        const { signInWithPopup } = await import('firebase/auth');
+        const { googleProvider, get, set } = await import('@/lib/firebase');
+
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+            const email = user.email.toLowerCase();
+
+            let isAllowed = false;
+            if (email.endsWith('@etu.uae.ac.ma')) {
+                isAllowed = true;
+            } else if (email.endsWith('@gmail.com')) {
+                const snapshot = await get(ref(db, 'emailExceptions'));
+                if (snapshot.exists()) {
+                    const exceptions = snapshot.val();
+                    const allowedEmails = Object.values(exceptions);
+                    if (allowedEmails.includes(email.trim())) {
+                        isAllowed = true;
+                    }
+                }
+            }
+
+            if (!isAllowed) {
+                await firebaseSignOut(auth);
+                throw new Error('Seuls les e-mails académiques (@etu.uae.ac.ma) sont autorisés.');
+            }
+
+            // Check if profile exists, if not create one
+            const userRef = ref(db, `users/${user.uid}`);
+            const profileSnap = await get(userRef);
+
+            if (!profileSnap.exists()) {
+                const nameParts = user.displayName ? user.displayName.split(' ') : ['Étudiant', 'ESTT'];
+                await set(userRef, {
+                    email: email,
+                    firstName: nameParts[0] || 'Étudiant',
+                    lastName: nameParts.slice(1).join(' ') || 'ESTT',
+                    createdAt: Date.now(),
+                    filiere: 'À compléter',
+                    startYear: new Date().getFullYear().toString()
+                });
+            }
+
+            return result;
+        } catch (error) {
+            console.error("Google Sign-In Error:", error);
+            throw error;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, sendVerification }}>
+        <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signInWithGoogle, signOut, sendVerification }}>
             {!loading && children}
         </AuthContext.Provider>
     );

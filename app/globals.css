@@ -117,10 +117,49 @@
 
 /* Hide scrollbars but keep scrolling */
 .no-scrollbar {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 .no-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari and Opera */
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
+/* Mobile Horizontal Scroll Utility */
+@media (max-width: 767px) {
+  .mobile-horizontal-scroll {
+    display: flex !important;
+    overflow-x: auto !important;
+    padding-bottom: 0.5rem !important;
+    padding-left: 1px !important;
+    /* Prevent clipping of shadows */
+    scroll-snap-type: x mandatory;
+    gap: 0.75rem !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-horizontal-scroll>* {
+    flex: 0 0 85%;
+    scroll-snap-align: start;
+  }
+
+  /* Custom styled scrollbar for mobile scroll containers */
+  .mobile-horizontal-scroll::-webkit-scrollbar {
+    height: 4px;
+    display: block;
+  }
+
+  .mobile-horizontal-scroll::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+  }
+
+  .mobile-horizontal-scroll::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    opacity: 0.5;
+    border-radius: 10px;
+  }
 }

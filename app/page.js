@@ -14,7 +14,6 @@ import { Search, BookOpen, Users, FileText, ChevronLeft, ChevronRight, Calendar,
 import Hero from '@/components/features/marketing/Hero';
 import AnnouncementCarousel from '@/components/features/marketing/AnnouncementCarousel';
 import ProgramBanners from '@/components/features/marketing/ProgramBanners';
-import SiteStats from '@/components/features/marketing/SiteStats';
 import ClubsPreview from '@/components/features/marketing/ClubsPreview';
 import AdsPreview from '@/components/features/marketing/AdsPreview';
 import LatestActivity from '@/components/features/marketing/LatestActivity';
@@ -238,8 +237,6 @@ export default function Home() {
             />
 
             <ProgramBanners />
-
-            <SiteStats stats={stats} />
 
             <ClubsPreview clubs={clubs} loading={loadingClubs} />
 

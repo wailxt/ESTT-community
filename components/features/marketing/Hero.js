@@ -15,6 +15,23 @@ export default function Hero({ stats, handleSearchClick }) {
                     Tu as un cours, un TD, un exercice ou une vidéo utile ? Contribue en moins de 2 minutes.
                 </p>
 
+                <div className="mt-10 flex flex-wrap justify-center gap-4 md:gap-8 text-sm font-medium">
+                    <div className="flex flex-col items-center gap-1">
+                        <strong className="text-3xl font-black text-primary" id="hero-stat-resources">{stats.resources}</strong>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Ressources</span>
+                    </div>
+                    <div className="w-px h-10 bg-slate-100 hidden sm:block"></div>
+                    <div className="flex flex-col items-center gap-1">
+                        <strong className="text-3xl font-black text-primary" id="hero-stat-contributions">{stats.contributions}</strong>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">En attente</span>
+                    </div>
+                    <div className="w-px h-10 bg-slate-100 hidden sm:block"></div>
+                    <div className="flex flex-col items-center gap-1">
+                        <strong className="text-3xl font-black text-primary" id="hero-stat-modules">{stats.modules}</strong>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Modules</span>
+                    </div>
+                </div>
+
                 <div className="mt-10 flex flex-col sm:flex-row gap-4">
                     <Button size="lg" className="rounded-full px-8 text-lg h-12" asChild>
                         <Link href="/contribute">
@@ -31,20 +48,6 @@ export default function Hero({ stats, handleSearchClick }) {
                             Découvrir les clubs
                         </Link>
                     </Button>
-                </div>
-
-                <div className="mt-8 flex flex-wrap justify-center gap-2 md:gap-6 text-sm font-medium text-muted-foreground">
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <strong className="text-primary text-base md:text-lg" id="hero-stat-resources">{stats.resources}</strong> ressources
-                    </div>
-                    <span className="text-slate-300">·</span>
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <strong className="text-primary text-base md:text-lg" id="hero-stat-contributions">{stats.contributions}</strong> contributions en attente
-                    </div>
-                    <span className="text-slate-300">·</span>
-                    <div className="flex items-center gap-2 whitespace-nowrap">
-                        <strong className="text-primary text-base md:text-lg" id="hero-stat-modules">{stats.modules}</strong> modules
-                    </div>
                 </div>
 
                 <p className="mt-5 text-sm text-muted-foreground/70">

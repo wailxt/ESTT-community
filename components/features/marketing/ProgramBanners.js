@@ -12,8 +12,8 @@ export default function ProgramBanners() {
     ];
 
     return (
-        <section id="program-banners" className="py-16 container">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6" id="banners-container">
+        <section id="program-banners" className="py-10 md:py-16 container">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" id="banners-container">
                 {banners.map((banner, index) => (
                     <Link key={index} className="group relative block overflow-hidden rounded-xl bg-background shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg" href={banner.href}>
                         <div className="aspect-[16/10] overflow-hidden">
@@ -26,8 +26,8 @@ export default function ProgramBanners() {
                                 loading="lazy"
                             />
                         </div>
-                        <div className="absolute bottom-3 left-3 right-3">
-                            <span className="inline-block rounded-lg bg-black/60 backdrop-blur-sm px-3 py-1.5 text-sm font-semibold text-white shadow-sm">
+                        <div className="absolute bottom-2 md:bottom-3 left-2 md:left-3 right-2 md:right-3">
+                            <span className="inline-block rounded-lg bg-black/60 backdrop-blur-sm px-2 py-1 md:px-3 md:py-1.5 text-[10px] md:text-sm font-semibold text-white shadow-sm">
                                 {banner.label}
                             </span>
                         </div>

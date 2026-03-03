@@ -7,11 +7,11 @@ export default function AdsPreview({ ads }) {
     if (!ads || ads.length === 0) return null;
 
     return (
-        <section id="student-ads" className="py-20 bg-white">
+        <section id="student-ads" className="py-12 md:py-20 bg-white">
             <div className="container">
-                <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-4">
+                <div className="flex flex-col md:flex-row justify-between items-end mb-8 md:mb-12 gap-4">
                     <div className="max-w-2xl">
-                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-4">Projets & Partenaires</h2>
+                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 mb-2 md:mb-4">Projets & Partenaires</h2>
                         <p className="text-slate-500 text-lg">
                             Soutenez les initiatives et services créés par vos camarades de l'ESTT.
                         </p>
@@ -21,7 +21,7 @@ export default function AdsPreview({ ads }) {
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
                     {ads.map((ad) => (
                         <div key={ad.id} className="group border border-slate-200 rounded-xl overflow-hidden hover:border-primary/50 transition-colors">
                             <div className="relative aspect-video overflow-hidden bg-slate-100">

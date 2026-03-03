@@ -110,33 +110,35 @@ export default function ActivityFeed() {
                 <a
                     key={activity.id}
                     href={activity.href}
-                    className="group block p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/50 transition-colors"
+                    className="group block p-3 md:p-6 bg-white border border-slate-200 rounded-xl hover:border-primary/50 transition-colors h-full"
                 >
-                    <div className="flex items-center justify-between mb-4">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    <div className="flex items-center justify-between mb-2 md:mb-4">
+                        <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider text-slate-400">
                             {activity.type === 'resource' ? 'Ressource' : 'Article'}
                         </span>
-                        <time className="text-[10px] text-slate-400 font-medium">
+                        <time className="text-[8px] md:text-[10px] text-slate-400 font-medium whitespace-nowrap">
                             {formatDate(activity.timestamp)}
                         </time>
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors mb-4 line-clamp-2">
+                    <h3 className="text-xs md:text-base font-bold text-slate-900 group-hover:text-primary transition-colors mb-2 md:mb-4 line-clamp-2 min-h-[2.5em] md:min-h-0">
                         {activity.title}
                     </h3>
 
-                    <div className="flex items-center gap-2 pt-4 border-t border-slate-100">
-                        <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
-                            <User className="w-3 h-3 text-slate-400" />
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-2 md:pt-4 border-t border-slate-100">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center">
+                                <User className="w-2.5 h-2.5 md:w-3 md:h-3 text-slate-400" />
+                            </div>
+                            <span className="text-[10px] md:text-xs text-slate-600 font-medium truncate">
+                                {activity.author}
+                            </span>
                         </div>
-                        <span className="text-xs text-slate-600 font-medium truncate">
-                            {activity.author}
-                        </span>
-                        <div className="ml-auto flex items-center gap-1 text-[10px] font-bold uppercase">
-                            <span className={cn(getFieldColor(activity.field))}>
+                        <div className="sm:ml-auto flex items-center gap-1 text-[8px] md:text-[10px] font-bold uppercase">
+                            <span className={cn(getFieldColor(activity.field), "truncate max-w-[50px] md:max-w-none")}>
                                 {activity.field || activity.module || 'ESTT'}
                             </span>
-                            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                            <ArrowRight className="w-2 h-2 md:w-3 md:h-3 group-hover:translate-x-0.5 transition-transform" />
                         </div>
                     </div>
                 </a>

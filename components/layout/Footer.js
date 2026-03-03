@@ -60,14 +60,9 @@ export default function Footer() {
                                     className="h-9 w-auto opacity-90 group-hover:opacity-100 transition-opacity"
                                 />
                             )}
-                            <div className="flex flex-col items-center lg:items-start">
-                                <span className="text-2xl font-black tracking-tighter text-slate-900 leading-none">
-                                    ESTT<span className="text-primary">.community</span>
-                                </span>
-                                <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-slate-400 mt-1">
-                                    L'Alternative Collaborative
-                                </span>
-                            </div>
+                            <span className="text-xl font-black tracking-tighter text-slate-900 leading-none">
+                                ESTT<span className="text-primary">.community</span>
+                            </span>
                         </Link>
 
                         <p className="text-base text-slate-500 leading-relaxed max-w-sm mx-auto lg:mx-0">
@@ -120,13 +115,13 @@ export default function Footer() {
                 {/* Bottom Bar */}
                 <div className="pt-8 border-t border-slate-200 flex flex-col lg:flex-row justify-between items-center gap-8 text-sm">
                     <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 text-center md:text-left">
-                        <p className="text-slate-500 font-medium flex items-center gap-1.5">
+                        <p className="text-[11px] sm:text-sm text-slate-500 font-medium flex items-center gap-1.5">
                             &copy; {currentYear} EST Tétouan. Fait avec <Heart className="w-3.5 h-3.5 text-slate-400" /> par les étudiants.
                         </p>
 
                         <div className="flex items-center justify-center gap-6">
-                            <Link href="/privacy" className="text-slate-400 hover:text-slate-600 transition-colors">Vie privée</Link>
-                            <Link href="/terms" className="text-slate-400 hover:text-slate-600 transition-colors">Conditions</Link>
+                            <Link href="/privacy" className="text-[11px] sm:text-sm text-slate-400 hover:text-slate-600 transition-colors">Vie privée</Link>
+                            <Link href="/terms" className="text-[11px] sm:text-sm text-slate-400 hover:text-slate-600 transition-colors">Conditions</Link>
                         </div>
                     </div>
 

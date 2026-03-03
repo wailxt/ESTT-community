@@ -35,9 +35,9 @@ export default function AnnouncementCarousel({
                                     alt="Announcement cover"
                                     fill
                                     sizes={IMAGE_SIZES.ANNOUNCEMENT_HERO}
-                                    className="object-cover opacity-60 transition-opacity duration-700 scale-105 group-hover:scale-100 transition-transform duration-1000"
+                                    className="object-cover opacity-80 transition-opacity duration-700 scale-105 group-hover:scale-100 transition-transform duration-1000"
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
                             </div>
                         ) : (
                             <div
@@ -50,35 +50,35 @@ export default function AnnouncementCarousel({
                     </div>
 
                     {/* Content Overlay */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12 lg:p-16 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent">
-                        <div className="max-w-3xl space-y-4">
-                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-10 lg:p-12 bg-gradient-to-t from-black/50 via-transparent to-transparent">
+                        <div className="max-w-2xl space-y-3">
+                            <div className="flex flex-wrap items-center gap-2 mb-1">
                                 {announcements[currentSlide].clubLogo && (
-                                    <div className="relative w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden border border-white/20 bg-white shadow-sm">
+                                    <div className="relative w-5 h-5 md:w-7 md:h-7 rounded-full overflow-hidden border border-white/20 bg-white shadow-sm">
                                         <Image src={announcements[currentSlide].clubLogo} alt={announcements[currentSlide].clubName} fill sizes={IMAGE_SIZES.CLUB_LOGO_SM} className="object-cover" />
                                     </div>
                                 )}
-                                <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md px-2 md:px-3 py-0.5 md:py-1 text-[10px] md:text-xs">
+                                <Badge className="bg-white/20 hover:bg-white/30 text-white border-0 backdrop-blur-md px-2 md:px-3 py-0.5 md:py-1 text-[9px] md:text-[11px]">
                                     {announcements[currentSlide].clubName}
                                 </Badge>
-                                <Badge variant="outline" className="text-white border-white/30 backdrop-blur-sm text-[10px] md:text-xs px-2 py-0.5">
+                                <Badge variant="outline" className="text-white border-white/30 backdrop-blur-sm text-[9px] md:text-[11px] px-2 py-0.5">
                                     {announcements[currentSlide].type === 'announcement' ? 'Annonce' : 'Activité'}
                                 </Badge>
                             </div>
 
                             {announcements[currentSlide].isAdmin ? (
-                                <h3 className="text-3xl md:text-4xl lg:text-4xl font-black text-white line-clamp-2 leading-tight">
+                                <h3 className="text-xl md:text-3xl font-black text-white line-clamp-2 leading-tight drop-shadow-md">
                                     {announcements[currentSlide].title}
                                 </h3>
                             ) : (
                                 <Link href={`/clubs/${announcements[currentSlide].clubId}/posts/${announcements[currentSlide].id}`} className="block">
-                                    <h3 className="text-xl md:text-4xl lg:text-4xl font-black text-white hover:text-primary transition-colors line-clamp-2 md:line-clamp-3 leading-[1.1]">
+                                    <h3 className="text-xl md:text-3xl font-black text-white hover:text-primary transition-colors line-clamp-2 md:line-clamp-3 leading-[1.1] drop-shadow-md">
                                         {announcements[currentSlide].title}
                                     </h3>
                                 </Link>
                             )}
 
-                            <p className="text-slate-200/90 line-clamp-2 text-sm md:text-lg max-w-2xl font-medium">
+                            <p className="text-white/90 line-clamp-2 text-xs md:text-base max-w-xl font-medium drop-shadow-sm">
                                 {announcements[currentSlide].content}
                             </p>
 
