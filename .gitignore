@@ -42,8 +42,8 @@ next-env.d.ts
 .vscode
 .idea
 
-
 USER_FILES/
 seopage
 .todo
-
+# testing 
+app/(core)/styles/page.js
