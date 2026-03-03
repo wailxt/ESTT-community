@@ -1,4 +1,3 @@
-import { Inter } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
 
@@ -6,11 +5,6 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { AuthProvider } from '@/context/AuthContext';
 import { defaultMetadata } from '@/lib/metadata';
-
-const inter = Inter({
-    subsets: ['latin'],
-    variable: '--font-inter',
-});
 
 const canela = localFont({
     src: '../public/fonts/Canela-Medium.woff2', // Assuming this path, verified in globals.css
@@ -58,8 +52,11 @@ export default function RootLayout({ children }) {
                     rel="stylesheet"
                     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
                 />
+                <link rel="preconnect" href="https://fonts.googleapis.com" />
+                <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+                <link href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap" rel="stylesheet" />
             </head>
-            <body className={`${inter.className} ${canela.variable} antialiased`} suppressHydrationWarning={true}>
+            <body className={`font-sans ${canela.variable} antialiased`} suppressHydrationWarning={true}>
                 <AuthProvider>
                     <Header />
                     {children}

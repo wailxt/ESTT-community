@@ -72,7 +72,7 @@ module.exports = {
                 "accordion-up": "accordion-up 0.2s ease-out",
             },
             fontFamily: {
-                sans: ["var(--font-inter)", "var(--font-sans)", "sans-serif"],
+                sans: ["'Google Sans'", "sans-serif"],
                 heading: ["var(--font-canela)", "serif"],
             }
         },
