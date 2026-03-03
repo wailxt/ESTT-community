@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.3.1...v1.4.0) (2026-03-03)
+
+
+### Features
+
+* Add bug reporting system, ([43b98b5](https://github.com/abdelhakim-sahifa/ESTT-community/commit/43b98b55eff8739d6068d90075a2ca825285a69d))
+
 ## [1.3.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.3.0...v1.3.1) (2026-03-03)
 
 
