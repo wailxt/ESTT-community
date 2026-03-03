@@ -21,6 +21,7 @@ import AdminAds from './AdminAds';
 import AdminSettings from './AdminSettings';
 import AdminNotifications from './AdminNotifications';
 import AdminFastContribute from './AdminFastContribute';
+import AdminBugReports from './AdminBugReports';
 
 
 export default function AdminDashboard() {
@@ -43,6 +44,7 @@ export default function AdminDashboard() {
         email: 'thevcercle@gmail.com'
     });
     const [adminAnnouncements, setAdminAnnouncements] = useState([]);
+    const [bugReports, setBugReports] = useState([]);
 
     // Admin Check
     useEffect(() => {
@@ -96,6 +98,13 @@ export default function AdminDashboard() {
             setReports(list);
         });
 
+        const bugReportsRef = ref(db, 'bugReports');
+        const unsubBugReports = onValue(bugReportsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
+            setBugReports(list);
+        });
+
         const clubRequestsRef = ref(db, 'clubRequests');
         const unsubClubRequests = onValue(clubRequestsRef, (snapshot) => {
             const data = snapshot.val() || {};
@@ -147,6 +156,7 @@ export default function AdminDashboard() {
             unsubClubChangeRequests();
             unsubAdminAnnouncements();
             unsubSettings();
+            unsubBugReports();
         };
     }, [user, profile, authLoading]);
 
@@ -175,6 +185,7 @@ export default function AdminDashboard() {
                     profile={profile}
                     stats={stats}
                     openReportsCount={reports.length}
+                    openBugReportsCount={bugReports.filter(b => b.status === 'open').length}
                     openClubRequestsCount={clubRequests.length}
                     openClubChangeRequestsCount={clubChangeRequests.length}
                 />
@@ -198,6 +209,10 @@ export default function AdminDashboard() {
 
                     {activeTab === 'reports' && (
                         <AdminReports reports={reports} />
+                    )}
+
+                    {activeTab === 'bugReports' && (
+                        <AdminBugReports reports={bugReports} />
                     )}
 
                     {activeTab === 'clubRequests' && (

@@ -38,7 +38,7 @@ export default function Footer() {
                 { label: "Documentation", href: "/docs" },
                 { label: "App Android", href: "/downloadAndroid" },
                 { label: "Aide / FAQ", href: "/docs#faq" },
-                { label: "Signaler un bug", href: "https://github.com/abdelhakim-sahifa/ESTT-community/issues", external: true },
+                { label: "Signaler un bug", href: "/report-bug" },
             ]
         }
     ];

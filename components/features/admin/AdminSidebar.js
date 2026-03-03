@@ -10,13 +10,14 @@ import {
     Settings,
     ShieldCheck,
     Bell,
-    Zap
+    Zap,
+    Bug
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
-export default function AdminSidebar({ activeTab, setActiveTab, profile, stats = {}, openReportsCount = 0, openClubRequestsCount = 0, openClubChangeRequestsCount = 0 }) {
+export default function AdminSidebar({ activeTab, setActiveTab, profile, stats = {}, openReportsCount = 0, openBugReportsCount = 0, openClubRequestsCount = 0, openClubChangeRequestsCount = 0 }) {
     return (
         <aside className="w-full md:w-64 bg-white border-r border-slate-200 p-6 flex flex-col gap-8">
             <div className="flex items-center gap-2 px-2">
@@ -63,6 +64,14 @@ export default function AdminSidebar({ activeTab, setActiveTab, profile, stats =
                 >
                     <AlertCircle className="w-4 h-4" /> Signalements
                     {openReportsCount > 0 && <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center">{openReportsCount}</Badge>}
+                </Button>
+                <Button
+                    variant={activeTab === 'bugReports' ? 'default' : 'ghost'}
+                    className="justify-start gap-3 h-11"
+                    onClick={() => setActiveTab('bugReports')}
+                >
+                    <Bug className="w-4 h-4" /> Bugs
+                    {openBugReportsCount > 0 && <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center">{openBugReportsCount}</Badge>}
                 </Button>
                 <Button
                     variant={activeTab === 'clubRequests' ? 'default' : 'ghost'}
