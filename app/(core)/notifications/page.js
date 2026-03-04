@@ -7,7 +7,14 @@ import { markAsRead, markGlobalAsRead, NOTIF_PRIORITY } from '@/lib/notification
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, CheckCheck, Loader2, ArrowRight, Info, AlertTriangle, Megaphone } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogClose,
+} from "@/components/ui/dialog";
+import { Bell, CheckCheck, Loader2, ArrowRight, Info, AlertTriangle, Megaphone, ExternalLink, Download, Check, Copy, Edit, Trash2, Share2, MoreVertical, MapPin, Calendar, User, Mail, Phone, Eye, Lock, Home, Search, Menu, X, Plus, Minus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Heart, Star, Flag, Bookmark, Settings, LogOut, LogIn, Clock, Zap, AlertCircle, CheckCircle, AlertOctagon, MessageSquare, Send, Inbox, Archive, Trash, FileText, Image, Music, Video, Code, Cpu, Database, Server, Cloud, GitBranch, Package } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +22,8 @@ export default function NotificationsPage() {
     const { user, profile } = useAuth();
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedNotif, setSelectedNotif] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -77,6 +86,12 @@ export default function NotificationsPage() {
             }
         }
 
+        // Open modal instead of directly performing action
+        setSelectedNotif(notif);
+        setIsModalOpen(true);
+    };
+
+    const handleActionClick = (notif) => {
         if (notif.action && notif.action.target) {
             // Support dynamic parameters
             let finalTarget = notif.action.target
@@ -86,6 +101,7 @@ export default function NotificationsPage() {
                 .replace(/{lastName}/g, profile?.lastName || '');
 
             if (notif.action.type === 'navigate') {
+                setIsModalOpen(false);
                 router.push(finalTarget);
             } else if (notif.action.type === 'external_link') {
                 window.open(finalTarget, '_blank');
@@ -103,6 +119,55 @@ export default function NotificationsPage() {
             case 'book-open': return <Bell className="w-5 h-5 text-emerald-500" />;
             default: return <Bell className="w-5 h-5 text-slate-400" />;
         }
+    };
+
+    const getDynamicIcon = (iconName, className = "w-4 h-4") => {
+        const iconMap = {
+            'arrow-right': <ArrowRight className={className} />,
+            'external-link': <ExternalLink className={className} />,
+            'check': <Check className={className} />,
+            'download': <Download className={className} />,
+            'copy': <Copy className={className} />,
+            'edit': <Edit className={className} />,
+            'trash': <Trash2 className={className} />,
+            'trash-2': <Trash2 className={className} />,
+            'share': <Share2 className={className} />,
+            'share-2': <Share2 className={className} />,
+            'more-vertical': <MoreVertical className={className} />,
+            'calendar': <Calendar className={className} />,
+            'user': <User className={className} />,
+            'mail': <Mail className={className} />,
+            'phone': <Phone className={className} />,
+            'eye': <Eye className={className} />,
+            'lock': <Lock className={className} />,
+            'home': <Home className={className} />,
+            'search': <Search className={className} />,
+            'heart': <Heart className={className} />,
+            'star': <Star className={className} />,
+            'flag': <Flag className={className} />,
+            'bookmark': <Bookmark className={className} />,
+            'settings': <Settings className={className} />,
+            'clock': <Clock className={className} />,
+            'zap': <Zap className={className} />,
+            'alert-circle': <AlertCircle className={className} />,
+            'check-circle': <CheckCircle className={className} />,
+            'message-square': <MessageSquare className={className} />,
+            'send': <Send className={className} />,
+            'inbox': <Inbox className={className} />,
+            'archive': <Archive className={className} />,
+            'file-text': <FileText className={className} />,
+            'image': <Image className={className} />,
+            'music': <Music className={className} />,
+            'video': <Video className={className} />,
+            'code': <Code className={className} />,
+            'cpu': <Cpu className={className} />,
+            'database': <Database className={className} />,
+            'server': <Server className={className} />,
+            'cloud': <Cloud className={className} />,
+            'git-branch': <GitBranch className={className} />,
+            'package': <Package className={className} />,
+        };
+        return iconMap[iconName] || <ArrowRight className={className} />;
     };
 
     if (loading) {
@@ -189,6 +254,92 @@ export default function NotificationsPage() {
                     ))}
                 </div>
             )}
+
+            {/* Notification Details Modal */}
+            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="w-full max-w-md">
+                    <DialogHeader>
+                        <div className="flex items-start gap-3">
+                            <div className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border border-slate-100",
+                                "bg-primary/5"
+                            )}>
+                                {selectedNotif && getIcon(selectedNotif.icon)}
+                            </div>
+                            <div className="flex-grow">
+                                <DialogTitle className="text-lg">
+                                    {selectedNotif?.title}
+                                </DialogTitle>
+                                <div className="flex items-center gap-2 mt-2">
+                                    {selectedNotif?.priority && (
+                                        <Badge
+                                            variant={
+                                                selectedNotif.priority === 'high' ? 'destructive' :
+                                                selectedNotif.priority === 'normal' ? 'default' :
+                                                'secondary'
+                                            }
+                                            className="text-xs"
+                                        >
+                                            {selectedNotif.priority === 'high' ? 'Haute priorité' :
+                                             selectedNotif.priority === 'normal' ? 'Normale' :
+                                             'Basse priorité'}
+                                        </Badge>
+                                    )}
+                                    <span className="text-xs text-slate-400">
+                                        {selectedNotif?.createdAt && new Date(selectedNotif.createdAt).toLocaleDateString('fr-FR', {
+                                            day: 'numeric',
+                                            month: 'long',
+                                            year: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div>
+                            <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                                Message
+                            </h4>
+                            <p className="text-sm text-slate-700 leading-relaxed">
+                                {selectedNotif?.message}
+                            </p>
+                        </div>
+
+                        {selectedNotif?.action && (
+                            <div>
+                                <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                                    Action
+                                </h4>
+                                <div className="text-xs text-slate-500 bg-slate-50 p-3 rounded-md font-mono break-all">
+                                    <span className="text-primary font-semibold">[{selectedNotif.action.type}]</span> {selectedNotif.action.target}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex gap-2 justify-end">
+                        <DialogClose asChild>
+                            <Button variant="outline" size="sm">
+                                Fermer
+                            </Button>
+                        </DialogClose>
+                        {selectedNotif?.action && (
+                            <Button
+                                size="sm"
+                                onClick={() => handleActionClick(selectedNotif)}
+                                className="gap-1"
+                            >
+                                {getDynamicIcon(selectedNotif.action.buttonIcon || 'arrow-right')}
+                                {selectedNotif.action.buttonText || 'Voir les détails'}
+                            </Button>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

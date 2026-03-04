@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Bell, Send, User, Loader2, Info, Link as LinkIcon, ExternalLink, MousePointer2 } from 'lucide-react';
+import { Search, Bell, Send, User, Loader2, Info, Link as LinkIcon, ExternalLink, MousePointer2, ArrowRight, Download, Check, Copy, Edit, Trash2, Share2, MoreVertical, MapPin, Calendar, Mail, Phone, Eye, Lock, Home, Menu, X, Plus, Minus, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Heart, Star, Flag, Bookmark, Settings, LogOut, LogIn, Clock, Zap, AlertTriangle, AlertCircle, CheckCircle, AlertOctagon, MessageSquare, Inbox, Archive, Trash, FileText, Image, Music, Video, Code, Cpu, Database, Server, Cloud, GitBranch, Package } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function AdminNotifications({ users }) {
@@ -17,7 +17,9 @@ export default function AdminNotifications({ users }) {
         priority: NOTIF_PRIORITY.NORMAL,
         icon: 'bell',
         actionType: 'none',
-        actionTarget: ''
+        actionTarget: '',
+        actionButtonText: 'Voir les détails',
+        actionButtonIcon: 'arrow-right'
     });
     const [privateForm, setPrivateForm] = useState({
         userId: '',
@@ -26,7 +28,9 @@ export default function AdminNotifications({ users }) {
         priority: NOTIF_PRIORITY.NORMAL,
         icon: 'bell',
         actionType: 'none',
-        actionTarget: ''
+        actionTarget: '',
+        actionButtonText: 'Voir les détails',
+        actionButtonIcon: 'arrow-right'
     });
     const [isSubmittingGlobal, setIsSubmittingGlobal] = useState(false);
     const [isSubmittingPrivate, setIsSubmittingPrivate] = useState(false);
@@ -38,6 +42,58 @@ export default function AdminNotifications({ users }) {
         u.email?.toLowerCase().includes(userSearch.toLowerCase())
     ).slice(0, 5);
 
+    const getDynamicIcon = (iconName, className = "w-5 h-5") => {
+        const iconMap = {
+            'arrow-right': <ArrowRight className={className} />,
+            'external-link': <ExternalLink className={className} />,
+            'check': <Check className={className} />,
+            'download': <Download className={className} />,
+            'copy': <Copy className={className} />,
+            'edit': <Edit className={className} />,
+            'trash': <Trash2 className={className} />,
+            'trash-2': <Trash2 className={className} />,
+            'share': <Share2 className={className} />,
+            'share-2': <Share2 className={className} />,
+            'more-vertical': <MoreVertical className={className} />,
+            'calendar': <Calendar className={className} />,
+            'user': <User className={className} />,
+            'mail': <Mail className={className} />,
+            'phone': <Phone className={className} />,
+            'eye': <Eye className={className} />,
+            'lock': <Lock className={className} />,
+            'home': <Home className={className} />,
+            'search': <Search className={className} />,
+            'heart': <Heart className={className} />,
+            'star': <Star className={className} />,
+            'flag': <Flag className={className} />,
+            'bookmark': <Bookmark className={className} />,
+            'settings': <Settings className={className} />,
+            'clock': <Clock className={className} />,
+            'zap': <Zap className={className} />,
+            'alert-circle': <AlertCircle className={className} />,
+            'check-circle': <CheckCircle className={className} />,
+            'alert-triangle': <AlertTriangle className={className} />,
+            'message-square': <MessageSquare className={className} />,
+            'send': <Send className={className} />,
+            'inbox': <Inbox className={className} />,
+            'archive': <Archive className={className} />,
+            'file-text': <FileText className={className} />,
+            'image': <Image className={className} />,
+            'music': <Music className={className} />,
+            'video': <Video className={className} />,
+            'code': <Code className={className} />,
+            'cpu': <Cpu className={className} />,
+            'database': <Database className={className} />,
+            'server': <Server className={className} />,
+            'cloud': <Cloud className={className} />,
+            'git-branch': <GitBranch className={className} />,
+            'package': <Package className={className} />,
+            'bell': <Bell className={className} />,
+            'info': <Info className={className} />,
+        };
+        return iconMap[iconName] || null;
+    };
+
     const handleSendGlobal = async (e) => {
         e.preventDefault();
         if (!globalForm.title || !globalForm.message) return;
@@ -45,7 +101,9 @@ export default function AdminNotifications({ users }) {
         try {
             const action = globalForm.actionType !== 'none' ? {
                 type: globalForm.actionType,
-                target: globalForm.actionTarget
+                target: globalForm.actionTarget,
+                buttonText: globalForm.actionButtonText,
+                buttonIcon: globalForm.actionButtonIcon
             } : null;
 
             await sendGlobalNotification({
@@ -58,7 +116,9 @@ export default function AdminNotifications({ users }) {
                 priority: NOTIF_PRIORITY.NORMAL,
                 icon: 'bell',
                 actionType: 'none',
-                actionTarget: ''
+                actionTarget: '',
+                actionButtonText: 'Voir les détails',
+                actionButtonIcon: 'arrow-right'
             });
             alert("Notification globale envoyée !");
         } catch (err) {
@@ -79,7 +139,9 @@ export default function AdminNotifications({ users }) {
         try {
             const action = privateForm.actionType !== 'none' ? {
                 type: privateForm.actionType,
-                target: privateForm.actionTarget
+                target: privateForm.actionTarget,
+                buttonText: privateForm.actionButtonText,
+                buttonIcon: privateForm.actionButtonIcon
             } : null;
 
             await sendPrivateNotification(privateForm.userId, {
@@ -94,7 +156,9 @@ export default function AdminNotifications({ users }) {
                 priority: NOTIF_PRIORITY.NORMAL,
                 icon: 'bell',
                 actionType: 'none',
-                actionTarget: ''
+                actionTarget: '',
+                actionButtonText: 'Voir les détails',
+                actionButtonIcon: 'arrow-right'
             });
             setUserSearch('');
             alert("Notification privée envoyée !");
@@ -200,21 +264,58 @@ export default function AdminNotifications({ users }) {
                                     </Select>
                                 </div>
                                 {globalForm.actionType !== 'none' && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                            <LinkIcon className="w-3 h-3" /> Cible / URL
-                                        </label>
-                                        <Input
-                                            placeholder={globalForm.actionType === 'navigate' ? "/profile" : "https://..."}
-                                            value={globalForm.actionTarget}
-                                            onChange={(e) => setGlobalForm({ ...globalForm, actionTarget: e.target.value })}
-                                            required
-                                        />
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                                <LinkIcon className="w-3 h-3" /> Cible / URL
+                                            </label>
+                                            <Input
+                                                placeholder={globalForm.actionType === 'navigate' ? "/profile" : "https://..."}
+                                                value={globalForm.actionTarget}
+                                                onChange={(e) => setGlobalForm({ ...globalForm, actionTarget: e.target.value })}
+                                                required
+                                            />
 
-                                        <p className="text-[10px] text-muted-foreground mt-1">
-                                            Utilisez <code className="bg-slate-100 px-1 rounded">{"{uid}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{email}"}</code> pour des liens dynamiques.
-                                        </p>
-                                    </div>
+                                            <p className="text-[10px] text-muted-foreground mt-1">
+                                                Utilisez <code className="bg-slate-100 px-1 rounded">{"{uid}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{email}"}</code> pour des liens dynamiques.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Texte du bouton</label>
+                                            <Input
+                                                placeholder="Ex: Voir les détails"
+                                                value={globalForm.actionButtonText}
+                                                onChange={(e) => setGlobalForm({ ...globalForm, actionButtonText: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Icône du bouton</label>
+                                            <div className="flex gap-2 items-start">
+                                                <div className="flex-grow">
+                                                    <Input
+                                                        placeholder="Ex: arrow-right, external-link, check, download..."
+                                                        value={globalForm.actionButtonIcon}
+                                                        onChange={(e) => setGlobalForm({ ...globalForm, actionButtonIcon: e.target.value })}
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground mt-1">Nom d'une icône <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer" className="text-primary underline">Lucide</a></p>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <div className="w-10 h-10 flex items-center justify-center border border-slate-200 rounded-lg bg-slate-50">
+                                                        {globalForm.actionButtonIcon && getDynamicIcon(globalForm.actionButtonIcon, 'w-5 h-5') ? (
+                                                            <div className="text-green-600">{getDynamicIcon(globalForm.actionButtonIcon, 'w-5 h-5')}</div>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-400">?</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-semibold text-slate-500">
+                                                        {globalForm.actionButtonIcon && getDynamicIcon(globalForm.actionButtonIcon) ? '✓ OK' : globalForm.actionButtonIcon ? '✗ Non' : '-'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </div>
 
@@ -308,21 +409,58 @@ export default function AdminNotifications({ users }) {
                                     </Select>
                                 </div>
                                 {privateForm.actionType !== 'none' && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
-                                            <LinkIcon className="w-3 h-3" /> Cible / URL
-                                        </label>
-                                        <Input
-                                            placeholder={privateForm.actionType === 'navigate' ? "/ads-portal" : "https://..."}
-                                            value={privateForm.actionTarget}
-                                            onChange={(e) => setPrivateForm({ ...privateForm, actionTarget: e.target.value })}
-                                            required
-                                        />
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                                                <LinkIcon className="w-3 h-3" /> Cible / URL
+                                            </label>
+                                            <Input
+                                                placeholder={privateForm.actionType === 'navigate' ? "/ads-portal" : "https://..."}
+                                                value={privateForm.actionTarget}
+                                                onChange={(e) => setPrivateForm({ ...privateForm, actionTarget: e.target.value })}
+                                                required
+                                            />
 
-                                        <p className="text-[10px] text-muted-foreground mt-1">
-                                            Placeholders: <code className="bg-slate-100 px-1 rounded">{"{uid}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{email}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{firstName}"}</code>
-                                        </p>
-                                    </div>
+                                            <p className="text-[10px] text-muted-foreground mt-1">
+                                                Placeholders: <code className="bg-slate-100 px-1 rounded">{"{uid}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{email}"}</code>, <code className="bg-slate-100 px-1 rounded">{"{firstName}"}</code>
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Texte du bouton</label>
+                                            <Input
+                                                placeholder="Ex: Voir les détails"
+                                                value={privateForm.actionButtonText}
+                                                onChange={(e) => setPrivateForm({ ...privateForm, actionButtonText: e.target.value })}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Icône du bouton</label>
+                                            <div className="flex gap-2 items-start">
+                                                <div className="flex-grow">
+                                                    <Input
+                                                        placeholder="Ex: arrow-right, external-link, check, download..."
+                                                        value={privateForm.actionButtonIcon}
+                                                        onChange={(e) => setPrivateForm({ ...privateForm, actionButtonIcon: e.target.value })}
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground mt-1">Nom d'une icône <a href="https://lucide.dev" target="_blank" rel="noopener noreferrer" className="text-primary underline">Lucide</a></p>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <div className="w-10 h-10 flex items-center justify-center border border-slate-200 rounded-lg bg-slate-50">
+                                                        {privateForm.actionButtonIcon && getDynamicIcon(privateForm.actionButtonIcon, 'w-5 h-5') ? (
+                                                            <div className="text-green-600">{getDynamicIcon(privateForm.actionButtonIcon, 'w-5 h-5')}</div>
+                                                        ) : (
+                                                            <span className="text-xs text-slate-400">?</span>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-[10px] font-semibold text-slate-500">
+                                                        {privateForm.actionButtonIcon && getDynamicIcon(privateForm.actionButtonIcon) ? '✓ OK' : privateForm.actionButtonIcon ? '✗ Non' : '-'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
                             </div>
 
