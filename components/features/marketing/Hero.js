@@ -18,17 +18,17 @@ export default function Hero({ stats, handleSearchClick }) {
                 <div className="mt-10 flex flex-wrap justify-center gap-4 md:gap-8 text-sm font-medium">
                     <div className="flex flex-col items-center gap-1">
                         <strong className="text-3xl font-black text-primary" id="hero-stat-resources">{stats.resources}</strong>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Ressources</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Ressources</span>
                     </div>
                     <div className="w-px h-10 bg-slate-100 hidden sm:block"></div>
                     <div className="flex flex-col items-center gap-1">
                         <strong className="text-3xl font-black text-primary" id="hero-stat-contributions">{stats.contributions}</strong>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">En attente</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">En attente</span>
                     </div>
                     <div className="w-px h-10 bg-slate-100 hidden sm:block"></div>
                     <div className="flex flex-col items-center gap-1">
                         <strong className="text-3xl font-black text-primary" id="hero-stat-modules">{stats.modules}</strong>
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Modules</span>
+                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Modules</span>
                     </div>
                 </div>
 
