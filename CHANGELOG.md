@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.4.0...v1.5.0) (2026-03-04)
+
+
+### Features
+
+* **notifications:** Add notification modal with customizable action buttons ([f8fae35](https://github.com/abdelhakim-sahifa/ESTT-community/commit/f8fae35e796f1af2c04ee71bb23593568b14360a))
+
 # [1.4.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.3.1...v1.4.0) (2026-03-03)
 
 
