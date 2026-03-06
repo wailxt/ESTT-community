@@ -20,6 +20,7 @@ import { Loader2, ArrowLeft, AlertCircle, CheckCircle2, FileText, Megaphone, Cal
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { sendPrivateNotification, NOTIF_TYPES } from '@/lib/notifications';
+import { generatePDF, generateCertificate, generateAttendanceList, generatePostPDF } from '@/lib/pdfUtils';
 
 
 export default function ClubAdminPage() {
@@ -109,6 +110,20 @@ export default function ClubAdminPage() {
     const [rejectionReason, setRejectionReason] = useState('');
     const [ticketToReject, setTicketToReject] = useState(null);
     const [rejecting, setRejecting] = useState(false);
+
+    const handleGeneratePDF = async (data, type, clubInfo, selectedForm = null) => {
+        try {
+            if (type === 'certificate') {
+                await generateCertificate(data, clubInfo);
+            } else {
+                await generatePDF(data, type, clubInfo, selectedForm);
+            }
+            setMessage('Document exporté avec succès');
+        } catch (error) {
+            console.error("PDF Export Error:", error);
+            setMessage("Erreur lors de l'exportation du PDF");
+        }
+    };
 
     useEffect(() => {
         if (clubId && !authLoading) {
@@ -411,22 +426,44 @@ export default function ClubAdminPage() {
                 return;
             }
 
+            const joinedAt = Date.now();
             const updatedMembers = [...currentMembers, {
                 name: request.name,
                 email: request.email,
                 phone: request.phone,
                 filiere: 'N/A', // Default or fetch if available
-                id: request.userId || Date.now()
+                id: request.userId || `member_${Date.now()}`,
+                joinedAt: joinedAt
             }];
 
             await update(ref(db, `clubs/${clubId}`), {
                 members: updatedMembers
             });
 
+            // Send Acceptance Email with Certificate Link
+            try {
+                const { membershipAcceptedEmail } = await import('@/lib/email-templates');
+                const memberId = request.userId || updatedMembers[updatedMembers.length - 1].id;
+                const certificateLink = `${window.location.origin}/clubs/${clubId}/certificate/${memberId}`;
+                const html = membershipAcceptedEmail(request.name, club.name, certificateLink);
+
+                await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: request.email,
+                        subject: `Félicitations ! Bienvenue chez ${club.name}`,
+                        html: html
+                    })
+                });
+            } catch (emailErr) {
+                console.error("Failed to send acceptance email:", emailErr);
+            }
+
             // Remove request
             await remove(ref(db, `clubs/${clubId}/joinRequests/${request.id}`));
 
-            setMessage('Demande approuvée. Membre ajouté.');
+            setMessage('Demande approuvée. Membre ajouté et email de bienvenue envoyé.');
             fetchClubData();
         } catch (error) {
             console.error(error);
@@ -1456,22 +1493,40 @@ export default function ClubAdminPage() {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-2">
-                                                                <Button variant="outline" size="sm" asChild>
+                                                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 w-full lg:w-auto">
+                                                                <Button variant="outline" size="sm" asChild className="w-full">
                                                                     <Link href={`/clubs/${clubId}/events/${event.id}/registration`} target="_blank">
                                                                         <Share2 className="w-4 h-4 mr-2" /> Lien
                                                                     </Link>
                                                                 </Button>
-                                                                <Button variant="outline" size="sm" onClick={() => {
-                                                                    // TODO: View participants
-                                                                    setActiveTab('tickets');
-                                                                    // Filter logic would go here
-                                                                }}>
-                                                                    Voir Participants
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="w-full"
+                                                                    onClick={() => {
+                                                                        setActiveTab('tickets');
+                                                                    }}
+                                                                >
+                                                                    <Users className="w-4 h-4 mr-2" />
+                                                                    Tickets
                                                                 </Button>
                                                                 <Button
                                                                     variant="outline"
                                                                     size="sm"
+                                                                    className="bg-slate-50 border-slate-200 w-full"
+                                                                    onClick={() => {
+                                                                        const eventParticipants = tickets.filter(t => t.eventId === event.id);
+                                                                        generateAttendanceList(eventParticipants, event, club);
+                                                                        setMessage('Liste des participants exportée');
+                                                                    }}
+                                                                >
+                                                                    <ClipboardList className="w-4 h-4 mr-2" />
+                                                                    Export
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="w-full"
                                                                     onClick={() => handleSendEventReminders(event.id)}
                                                                     disabled={sendingRemindersForEventId === event.id}
                                                                 >
@@ -1483,12 +1538,18 @@ export default function ClubAdminPage() {
                                                                     ) : (
                                                                         <>
                                                                             <Bell className="w-4 h-4 mr-2" />
-                                                                            Envoyer les rappels
+                                                                            Rappels
                                                                         </>
                                                                     )}
                                                                 </Button>
-                                                                <Button variant="ghost" size="sm" className="text-destructive" onClick={() => handleDeleteEvent(event.id)}>
-                                                                    <Trash2 className="w-4 h-4" />
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="text-destructive hover:bg-destructive/10 w-full col-span-2 sm:col-span-1"
+                                                                    onClick={() => handleDeleteEvent(event.id)}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4 mr-2 sm:mr-0" />
+                                                                    <span className="sm:hidden">Supprimer</span>
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -1555,13 +1616,24 @@ export default function ClubAdminPage() {
                                                                 <p className="font-medium text-sm">{member.name}</p>
                                                                 <p className="text-xs text-muted-foreground">{member.email}</p>
                                                             </div>
-                                                            <div className="flex items-center gap-3">
+                                                            <div className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-2">
                                                                 <Badge variant="secondary" className="text-xs">{member.filiere}</Badge>
+                                                                <div /> {/* Spacer */}
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
-                                                                    className="text-destructive hover:bg-destructive/10"
+                                                                    className="text-blue-600 hover:bg-blue-50 h-8 w-8 p-0"
+                                                                    onClick={() => handleGeneratePDF(member, 'certificate', club)}
+                                                                    title="Générer le certificat"
+                                                                >
+                                                                    <FileText className="w-4 h-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
                                                                     onClick={() => handleRemoveMember(member.email)}
+                                                                    title="Supprimer le membre"
                                                                 >
                                                                     <Trash2 className="w-4 h-4" />
                                                                 </Button>
@@ -1601,27 +1673,40 @@ export default function ClubAdminPage() {
                                                                         {new Date(post.createdAt).toLocaleDateString('fr-FR')} • {post.type === 'article' ? 'Article' : post.type === 'announcement' ? 'Annonce' : 'Activité'}
                                                                     </p>
                                                                 </div>
-                                                                <Dialog>
-                                                                    <DialogTrigger asChild>
-                                                                        <Button variant="ghost" size="sm">
-                                                                            <Trash2 className="w-4 h-4 text-destructive" />
-                                                                        </Button>
-                                                                    </DialogTrigger>
-                                                                    <DialogContent>
-                                                                        <DialogHeader>
-                                                                            <DialogTitle>Supprimer la publication</DialogTitle>
-                                                                            <DialogDescription>
-                                                                                Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible.
-                                                                            </DialogDescription>
-                                                                        </DialogHeader>
-                                                                        <DialogFooter>
-                                                                            <Button variant="outline" onClick={() => { }}>Annuler</Button>
-                                                                            <Button variant="destructive" onClick={() => handleDeletePost(post.id)}>
+                                                                <div className="grid grid-cols-2 gap-2">
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="h-8"
+                                                                        onClick={() => generatePostPDF(post, club)}
+                                                                        title="Exporter en PDF"
+                                                                    >
+                                                                        <FileText className="w-4 h-4 mr-2" />
+                                                                        PDF
+                                                                    </Button>
+                                                                    <Dialog>
+                                                                        <DialogTrigger asChild>
+                                                                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:bg-destructive/10">
+                                                                                <Trash2 className="w-4 h-4 mr-2" />
                                                                                 Supprimer
                                                                             </Button>
-                                                                        </DialogFooter>
-                                                                    </DialogContent>
-                                                                </Dialog>
+                                                                        </DialogTrigger>
+                                                                        <DialogContent>
+                                                                            <DialogHeader>
+                                                                                <DialogTitle>Supprimer la publication</DialogTitle>
+                                                                                <DialogDescription>
+                                                                                    Êtes-vous sûr de vouloir supprimer cette publication ? Cette action est irréversible.
+                                                                                </DialogDescription>
+                                                                            </DialogHeader>
+                                                                            <DialogFooter>
+                                                                                <Button variant="outline" onClick={() => { }}>Annuler</Button>
+                                                                                <Button variant="destructive" onClick={() => handleDeletePost(post.id)}>
+                                                                                    Supprimer
+                                                                                </Button>
+                                                                            </DialogFooter>
+                                                                        </DialogContent>
+                                                                    </Dialog>
+                                                                </div>
                                                             </div>
                                                         </CardHeader>
                                                         <CardContent>
@@ -1931,7 +2016,17 @@ export default function ClubAdminPage() {
                                                                     </p>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                            <div className="flex items-center gap-2 w-full sm:w-auto mt-4 sm:mt-0 flex-wrap justify-end">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => handleGeneratePDF(req, 'join', club)}
+                                                                    className="w-full sm:w-auto"
+                                                                    title="Exporter en PDF"
+                                                                >
+                                                                    <FileText className="w-4 h-4 sm:mr-2" />
+                                                                    <span className="sm:inline">PDF</span>
+                                                                </Button>
                                                                 <Button
                                                                     className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
                                                                     size="sm"
@@ -1991,6 +2086,7 @@ export default function ClubAdminPage() {
                                                                 {selectedForm.fields.map(field => (
                                                                     <th key={field.id} className="p-4 min-w-[150px]">{field.label}</th>
                                                                 ))}
+                                                                <th className="p-4 w-[100px] text-right">Actions</th>
                                                             </tr>
                                                         </thead>
                                                         <tbody className="divide-y">
@@ -2006,6 +2102,16 @@ export default function ClubAdminPage() {
                                                                                 : (sub.data?.[field.id] || '-')}
                                                                         </td>
                                                                     ))}
+                                                                    <td className="p-4 text-right">
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => handleGeneratePDF(sub, 'form', club)}
+                                                                            title="Exporter en PDF"
+                                                                        >
+                                                                            <FileText className="w-4 h-4 text-blue-600" />
+                                                                        </Button>
+                                                                    </td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
@@ -2158,22 +2264,24 @@ export default function ClubAdminPage() {
                                                                             </Link>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-2">
+                                                                    <div className="grid grid-cols-2 gap-2">
                                                                         <Button
                                                                             variant="outline"
                                                                             size="sm"
                                                                             onClick={() => fetchSubmissions(form)}
+                                                                            className="h-8"
                                                                         >
                                                                             <Users className="w-4 h-4 mr-2" />
-                                                                            Voir réponses
+                                                                            Réponses
                                                                         </Button>
                                                                         <Button
                                                                             variant="ghost"
                                                                             size="sm"
-                                                                            className="text-destructive"
+                                                                            className="text-destructive hover:bg-destructive/10 h-8"
                                                                             onClick={() => handleDeleteForm(form.id)}
                                                                         >
-                                                                            <Trash2 className="w-4 h-4" />
+                                                                            <Trash2 className="w-4 h-4 mr-2" />
+                                                                            Supprimer
                                                                         </Button>
                                                                     </div>
                                                                 </div>
@@ -2215,12 +2323,13 @@ export default function ClubAdminPage() {
                                                                     <p className="text-xs text-muted-foreground">Événement: {ticket.eventName}</p>
                                                                     <p className="text-xs text-muted-foreground">Date: {new Date(ticket.createdAt).toLocaleDateString()}</p>
                                                                 </div>
-                                                                <div className="flex gap-2">
+                                                                <div className="grid grid-cols-2 gap-2">
                                                                     {ticket.status === 'pending' && (
                                                                         <Button
                                                                             size="sm"
-                                                                            className="bg-green-600 hover:bg-green-700 h-8"
+                                                                            className="bg-green-600 hover:bg-green-700 h-8 w-8 p-0"
                                                                             onClick={() => handleApproveTicket(ticket.id)}
+                                                                            title="Approuver"
                                                                         >
                                                                             <CheckCircle2 className="w-4 h-4" />
                                                                         </Button>
@@ -2228,8 +2337,9 @@ export default function ClubAdminPage() {
                                                                     <Button
                                                                         size="sm"
                                                                         variant="destructive"
-                                                                        className="h-8"
+                                                                        className="h-8 w-8 p-0"
                                                                         onClick={() => handleRejectTicket(ticket)}
+                                                                        title="Supprimer"
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
                                                                     </Button>

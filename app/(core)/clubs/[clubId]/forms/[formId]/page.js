@@ -11,9 +11,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
-import { Loader2, CheckCircle2, ArrowLeft, AlertCircle, Ticket, Check } from 'lucide-react';
+import { Loader2, CheckCircle2, ArrowLeft, AlertCircle, Ticket, Check, FileText, Download } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { generatePDF } from '@/lib/pdfUtils';
 
 export default function CustomFormPage() {
     const params = useParams();
@@ -29,6 +30,8 @@ export default function CustomFormPage() {
     const [error, setError] = useState('');
 
     const [formData, setFormData] = useState({});
+    const [lastSubmission, setLastSubmission] = useState(null);
+    const [exportingPDF, setExportingPDF] = useState(false);
 
     useEffect(() => {
         if (clubId && formId) {
@@ -107,11 +110,15 @@ export default function CustomFormPage() {
             const submissionId = submissionRef.key;
 
 
-            await set(submissionRef, {
+            const submissionData = {
+                id: submissionId,
                 data: formData,
                 userId: user ? user.uid : null,
                 submittedAt: Date.now()
-            });
+            };
+
+            await set(submissionRef, submissionData);
+            setLastSubmission(submissionData);
 
             // Send General Form Submission Receipt
             try {
@@ -182,9 +189,33 @@ export default function CustomFormPage() {
                         <p className="text-muted-foreground">
                             Merci de votre participation. Un administrateur vérifiera votre soumission prochainement.
                         </p>
+
+                        {lastSubmission && (
+                            <Button
+                                onClick={async () => {
+                                    setExportingPDF(true);
+                                    try {
+                                        await generatePDF(lastSubmission, 'form', club, form);
+                                    } catch (err) {
+                                        console.error(err);
+                                    } finally {
+                                        setExportingPDF(false);
+                                    }
+                                }}
+                                disabled={exportingPDF}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                {exportingPDF ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4 mr-2" />
+                                )}
+                                Télécharger ma réponse (PDF)
+                            </Button>
+                        )}
                     </CardContent>
-                    <CardFooter className="justify-center">
-                        <Button asChild variant="outline">
+                    <CardFooter className="flex flex-col gap-2">
+                        <Button asChild variant="outline" className="w-full">
                             <Link href={`/clubs/${clubId}`}>Retourner au profil du club</Link>
                         </Button>
                     </CardFooter>

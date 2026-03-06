@@ -10,10 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
-import { Loader2, CheckCircle2, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, ArrowLeft, AlertCircle, Download } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { generatePDF } from '@/lib/pdfUtils';
 
 export default function ClubJoinPage() {
     const params = useParams();
@@ -26,6 +27,8 @@ export default function ClubJoinPage() {
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [error, setError] = useState('');
+    const [lastRequest, setLastRequest] = useState(null);
+    const [exportingPDF, setExportingPDF] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -118,12 +121,16 @@ export default function ClubJoinPage() {
 
             // Create join request
             const requestRef = push(ref(db, `clubs/${clubId}/joinRequests`));
-            await set(requestRef, {
-                userId: user ? user.uid : null, // Optional if user not logged in, but better if they are
+            const requestData = {
+                id: requestRef.key,
+                userId: user ? user.uid : null,
                 ...formData,
                 status: 'pending',
                 submittedAt: Date.now()
-            });
+            };
+
+            await set(requestRef, requestData);
+            setLastRequest(requestData);
 
             setSubmitted(true);
 
@@ -148,7 +155,7 @@ export default function ClubJoinPage() {
                     );
                     if (president) recipient = president.email;
                 }
-a
+                a
                 if (sendNotif && recipient) {
                     const { adminNotificationEmail } = await import('@/lib/email-templates');
                     const notifHtml = adminNotificationEmail(
@@ -211,13 +218,37 @@ a
                             Votre demande d'adhésion a été transmise aux administrateurs du club.
                         </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <p className="text-muted-foreground mb-6">
+                    <CardContent className="space-y-4">
+                        <p className="text-muted-foreground">
                             Vous recevrez une notification une fois votre demande traitée.
                         </p>
+
+                        {lastRequest && (
+                            <Button
+                                onClick={async () => {
+                                    setExportingPDF(true);
+                                    try {
+                                        await generatePDF(lastRequest, 'join', club);
+                                    } catch (err) {
+                                        console.error(err);
+                                    } finally {
+                                        setExportingPDF(false);
+                                    }
+                                }}
+                                disabled={exportingPDF}
+                                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                {exportingPDF ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4 mr-2" />
+                                )}
+                                Télécharger ma demande (PDF)
+                            </Button>
+                        )}
                     </CardContent>
-                    <CardFooter className="justify-center">
-                        <Button asChild variant="outline">
+                    <CardFooter className="flex flex-col gap-2">
+                        <Button asChild variant="outline" className="w-full">
                             <Link href={`/clubs/${clubId}`}>Retourner au profil du club</Link>
                         </Button>
                     </CardFooter>

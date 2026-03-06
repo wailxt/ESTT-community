@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText } from 'lucide-react';
+import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award } from 'lucide-react';
 import { cn, getUserLevel } from '@/lib/utils';
 
 export default function PublicProfilePage() {
@@ -137,18 +137,23 @@ export default function PublicProfilePage() {
                     const userEmail = profile.email?.toLowerCase();
                     const userId = id;
 
-                    const associatedClubs = Object.entries(allClubs).map(([cId, club]) => ({
-                        id: cId,
-                        ...club
-                    })).filter(club => {
-                        const inOrg = club.organizationalChart && Object.values(club.organizationalChart).some(member =>
-                            member?.email?.toLowerCase() === userEmail
+                    const associatedClubs = Object.entries(allClubs).map(([cId, club]) => {
+                        const inOrg = club.organizationalChart && Object.values(club.organizationalChart).find(m =>
+                            m?.email?.toLowerCase() === userEmail
                         );
-                        const inMembers = club.members && Array.isArray(club.members) && club.members.some(member =>
-                            member?.email?.toLowerCase() === userEmail || member?.id === userId
+                        const memberInfo = club.members && Array.isArray(club.members) && club.members.find(m =>
+                            m?.email?.toLowerCase() === userEmail || m?.id === userId
                         );
-                        return inOrg || inMembers;
-                    });
+
+                        if (inOrg || memberInfo) {
+                            return {
+                                id: cId,
+                                ...club,
+                                userMemberId: memberInfo?.id || inOrg?.id || null
+                            };
+                        }
+                        return null;
+                    }).filter(Boolean);
 
                     setUserClubs(associatedClubs);
                 }
@@ -381,8 +386,8 @@ export default function PublicProfilePage() {
                         )}
                     </div>
 
-                        {/* Right Column */}
-                        <div className="lg:col-span-2 space-y-8">
+                    {/* Right Column */}
+                    <div className="lg:col-span-2 space-y-8">
 
                         {/* Contributions (horizontal scroll) */}
                         <section>
@@ -512,18 +517,30 @@ export default function PublicProfilePage() {
                                     <Loader2 className="w-5 h-5 animate-spin text-primary mx-auto col-span-full" />
                                 ) : userClubs.length > 0 ? (
                                     userClubs.map(club => (
-                                        <Link key={club.id} href={`/clubs/${club.id}`} className="group p-4 border border-slate-200 rounded-xl hover:border-primary/50 transition-colors text-center">
-                                            <div className="relative w-10 h-10 mx-auto mb-2">
-                                                {club.logo ? (
-                                                    <Image src={club.logo} alt={club.name} fill sizes={IMAGE_SIZES.CLUB_LOGO_MD} className="object-contain" />
-                                                ) : (
-                                                    <div className="w-full h-full rounded-full flex items-center justify-center font-bold text-white text-sm" style={{ backgroundColor: club.themeColor || '#64748b' }}>
-                                                        {club.name[0]}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="text-xs font-bold text-slate-700 truncate group-hover:text-primary transition-colors">{club.name}</p>
-                                        </Link>
+                                        <div key={club.id} className="group relative border border-slate-200 rounded-xl hover:border-primary/50 transition-colors text-center p-4 bg-white">
+                                            <Link href={`/clubs/${club.id}`}>
+                                                <div className="relative w-10 h-10 mx-auto mb-2">
+                                                    {club.logo ? (
+                                                        <Image src={club.logo} alt={club.name} fill sizes={IMAGE_SIZES.CLUB_LOGO_MD} className="object-contain" />
+                                                    ) : (
+                                                        <div className="w-full h-full rounded-full flex items-center justify-center font-bold text-white text-sm" style={{ backgroundColor: club.themeColor || '#64748b' }}>
+                                                            {club.name[0]}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs font-bold text-slate-700 truncate group-hover:text-primary transition-colors">{club.name}</p>
+                                            </Link>
+
+                                            {currentUser && currentUser.uid === id && club.userMemberId && (
+                                                <Link
+                                                    href={`/clubs/${club.id}/certificate/${club.userMemberId}`}
+                                                    className="mt-2 text-[10px] font-bold text-primary flex items-center justify-center gap-1 hover:underline pt-2 border-t border-slate-50"
+                                                >
+                                                    <Award className="w-3 h-3" />
+                                                    Certificat
+                                                </Link>
+                                            )}
+                                        </div>
                                     ))
                                 ) : (
                                     <div className="col-span-full text-center py-8 border border-dashed border-slate-200 rounded-xl">
