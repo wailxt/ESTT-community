@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.5.0...v1.6.0) (2026-03-06)
+
+
+### Features
+
+* add PDF generation for form submissions and join requests ([f3d24fe](https://github.com/abdelhakim-sahifa/ESTT-community/commit/f3d24fed382ba298ebcb4bcd08015b8b60327224))
+
 # [1.5.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.4.0...v1.5.0) (2026-03-04)
 
 
