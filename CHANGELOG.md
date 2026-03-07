@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.6.0...v1.6.1) (2026-03-07)
+
+
+### Performance Improvements
+
+* . ([f7cc0bc](https://github.com/abdelhakim-sahifa/ESTT-community/commit/f7cc0bc0d278c32f8dcd4e757916ec9e89b53611))
+
 # [1.6.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.5.0...v1.6.0) (2026-03-06)
 
 
