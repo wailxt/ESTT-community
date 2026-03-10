@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.6.1...v1.6.2) (2026-03-10)
+
+
+### Bug Fixes
+
+* add social media links  to the docuement ([4bbb95d](https://github.com/abdelhakim-sahifa/ESTT-community/commit/4bbb95db0b12fd640122bd2b324f368aa7e048c3))
+
 ## [1.6.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.6.0...v1.6.1) (2026-03-07)
 
 
