@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.7.0...v1.7.1) (2026-03-12)
+
+
+### Bug Fixes
+
+* update data ([00225bb](https://github.com/abdelhakim-sahifa/ESTT-community/commit/00225bbf84cc4fcb5f3e8f99a97e0c4bdece5914))
+
 # [1.7.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.6.2...v1.7.0) (2026-03-10)
 
 
