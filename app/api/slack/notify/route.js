@@ -144,6 +144,7 @@ export async function POST(request) {
         }
 
         const slackMessage = { blocks };
+        console.log('Sending Slack Message:', JSON.stringify(slackMessage, null, 2));
 
         const response = await fetch(slackWebhookUrl, {
             method: 'POST',
@@ -155,9 +156,11 @@ export async function POST(request) {
 
         if (!response.ok) {
             const errorText = await response.text();
+            console.error(`Slack API error: ${response.status} ${errorText}`);
             throw new Error(`Slack API error: ${response.status} ${errorText}`);
         }
 
+        console.log('Slack notification sent successfully');
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error in Slack notification route:', error);
