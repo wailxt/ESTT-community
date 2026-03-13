@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.7.1...v1.8.0) (2026-03-13)
+
+
+### Features
+
+* Implement resource contribution flow with Google Drive uploads, Slack notifications, and new marketing/core pages, including a Stripe webhook. ([389ca61](https://github.com/abdelhakim-sahifa/ESTT-community/commit/389ca61a61a9992827486131c1a0dd814208cfe1))
+
 ## [1.7.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.7.0...v1.7.1) (2026-03-12)
 
 
