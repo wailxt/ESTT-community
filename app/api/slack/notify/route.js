@@ -81,19 +81,65 @@ export async function POST(request) {
             const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
             const link = resource.type === 'bug' ? `${baseUrl}/admin` : `${baseUrl}/resource/${resource.id}`;
             
-            blocks.push({
-                type: "actions",
-                elements: [
+            const actionElements = [
+                {
+                    type: "button",
+                    text: {
+                        type: "plain_text",
+                        text: "Voir les détails"
+                    },
+                    url: link,
+                    style: "primary"
+                }
+            ];
+
+            // Add Approve/Reject buttons for admin channel (contributions)
+            if (channel === 'admin' && resource.type !== 'bug') {
+                actionElements.push(
                     {
                         type: "button",
                         text: {
                             type: "plain_text",
-                            text: "Voir les détails"
+                            text: "Approuver ✅"
                         },
-                        url: link,
-                        style: "primary"
+                        style: "primary",
+                        value: resource.id,
+                        action_id: "approve_resource"
+                    },
+                    {
+                        type: "button",
+                        text: {
+                            type: "plain_text",
+                            text: "Rejeter ❌"
+                        },
+                        style: "danger",
+                        value: resource.id,
+                        action_id: "reject_resource",
+                        confirm: {
+                            title: {
+                                type: "plain_text",
+                                text: "Êtes-vous sûr ?"
+                            },
+                            text: {
+                                type: "plain_text",
+                                text: "Voulez-vous vraiment rejeter cette ressource ?"
+                            },
+                            confirm: {
+                                type: "plain_text",
+                                text: "Rejeter"
+                            },
+                            deny: {
+                                type: "plain_text",
+                                text: "Annuler"
+                            }
+                        }
                     }
-                ]
+                );
+            }
+
+            blocks.push({
+                type: "actions",
+                elements: actionElements
             });
         }
 
