@@ -1,3 +1,10 @@
+## [1.9.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.9.1...v1.9.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* add erreur handling ([d8f92b9](https://github.com/abdelhakim-sahifa/ESTT-community/commit/d8f92b94933c3b9a76e5cbf9c8d6994db6d70e09))
+
 ## [1.9.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.9.0...v1.9.1) (2026-03-13)
 
 
