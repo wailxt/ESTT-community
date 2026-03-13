@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.9.0...v1.9.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* slack notifications for contributions ([455d7c8](https://github.com/abdelhakim-sahifa/ESTT-community/commit/455d7c895892a1f5b49678ebc0a847da908ceb47))
+
 # [1.9.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.8.0...v1.9.0) (2026-03-13)
 
 
