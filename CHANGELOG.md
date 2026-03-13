@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.8.0...v1.9.0) (2026-03-13)
+
+
+### Features
+
+* Add Slack API endpoints for sending notifications and handling interactive resource moderation actions. ([adda67c](https://github.com/abdelhakim-sahifa/ESTT-community/commit/adda67c44b192b62000005552aee260f1376f254))
+
 # [1.8.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.7.1...v1.8.0) (2026-03-13)
 
 
