@@ -115,17 +115,67 @@ export async function POST(req) {
 
                     return NextResponse.json({
                         replace_original: true,
-                        blocks: updatedBlocks
+                        blocks: updatedBlocks,
+                        text: `Ressource ${resourceId} : ${isApproved ? 'Approuvée' : 'Rejetée'} par ${slackUser}`
                     });
 
                 } catch (dbError) {
                     console.error('Firebase update error:', dbError);
-                    return NextResponse.json({ text: `Erreur lors de la mise à jour : ${dbError.message}` });
+                    return NextResponse.json({ text: `Erreur lors de la mise à jour de ${resourceId} : ${dbError.message}` });
                 }
             }
         }
 
-        // 4. Handle regular Events
+        // 4. Handle Message commands (e.g. "hide test-ID")
+        if (body.type === 'event_callback' && body.event?.type === 'message' && !body.event.bot_id) {
+            const text = body.event.text || '';
+            const slackUser = body.event.user;
+            
+            // Simple regex to match "hide [ID]" or "approver [ID]"
+            // Using "approver" as requested by the user's plan prompt
+            const hideMatch = text.match(/^hide\s+([a-zA-Z0-9_-]+)/i);
+            const approveMatch = text.match(/^approver\s+([a-zA-Z0-9_-]+)/i);
+
+            if (hideMatch || approveMatch) {
+                const isApproved = !!approveMatch;
+                const resourceId = isApproved ? approveMatch[1] : hideMatch[1];
+                
+                console.log(`Slack Message Command: ${isApproved ? 'Approve' : 'Hide'} resource ${resourceId} by ${slackUser}`);
+
+                try {
+                    const resourceRef = ref(db, `resources/${resourceId}`);
+                    const snapshot = await get(resourceRef);
+
+                    if (!snapshot.exists()) {
+                        console.error(`Resource ${resourceId} not found for moderation message`);
+                        // We don't have a response_url here to easily reply if not a slash command, 
+                        // but we can log it.
+                    } else {
+                        const authorId = snapshot.val().authorId;
+                        const updateData = {
+                            unverified: !isApproved,
+                            status: isApproved ? 'approved' : 'rejected',
+                            moderatedBy: slackUser,
+                            moderatedAt: serverTimestamp()
+                        };
+
+                        await update(resourceRef, updateData);
+
+                        if (authorId) {
+                            await update(ref(db, `users/${authorId}/contributions/${resourceId}`), {
+                                unverified: !isApproved,
+                                status: isApproved ? 'approved' : 'rejected'
+                            });
+                        }
+                        console.log(`Successfully ${isApproved ? 'approved' : 'hidden'} resource ${resourceId}`);
+                    }
+                } catch (dbError) {
+                    console.error('Firebase update error from message command:', dbError);
+                }
+            }
+        }
+
+        // 5. Handle regular Events (for logging/audit)
         console.log('Slack event received:', body);
 
         // Store the event in Firebase for audit/debug
