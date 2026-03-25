@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.10.0...v1.11.0) (2026-03-25)
+
+
+### Features
+
+* implement shoturl feature ([11c0723](https://github.com/abdelhakim-sahifa/ESTT-community/commit/11c0723e242cf503dd38cc5c27baca38cf59d2ef))
+
 # [1.10.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.9.3...v1.10.0) (2026-03-23)
 
 
