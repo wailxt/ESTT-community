@@ -30,6 +30,12 @@ git commit -m "fix(loader): resolve infinite loading state"
 git push  # → Creates v1.0.1 (PATCH bump)
 ```
 
+### Patch Update
+```bash
+git commit -m "patch: minor update that doesn't need feature bump"
+git push  # → Creates v1.0.1 (PATCH bump)
+```
+
 ### Breaking Change (Major Version)
 ```bash
 git commit -m "feat(api)!: redesign webhook response format
@@ -60,6 +66,7 @@ git push  # → Creates v2.0.0 (MAJOR bump)
 |--------|--------|
 | `feat: add feature` | MINOR bump |
 | `fix: resolve bug` | PATCH bump |
+| `patch: minor update` | PATCH bump |
 | `feat!: breaking change` | MAJOR bump |
 | `docs: update readme` | No bump |
 | `refactor: improve code` | No bump |

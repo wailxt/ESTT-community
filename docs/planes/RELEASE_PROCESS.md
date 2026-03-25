@@ -16,7 +16,7 @@ Every time you push code to `main` or `master` branch:
 **Version Bumping Rules:**
 - `BREAKING CHANGE` or `feat!:` → **MAJOR** version bump (1.0.0 → 2.0.0)
 - `feat:` → **MINOR** version bump (1.0.0 → 1.1.0)
-- `fix:` or `perf:` → **PATCH** version bump (1.0.0 → 1.0.1)
+- `fix:`, `perf:` or `patch:` → **PATCH** version bump (1.0.0 → 1.0.1)
 - Other types → **No release** (docs, chore, style, test, etc.)
 
 ## Conventional Commits Format
@@ -84,6 +84,7 @@ Improved code readability without changing functionality.
 | `feat`    | New feature                         | MINOR ↑         |
 | `fix`     | Bug fix                             | PATCH ↑         |
 | `perf`    | Performance improvement             | PATCH ↑         |
+| `patch`   | Minor patch update                  | PATCH ↑         |
 | `docs`    | Documentation changes               | None            |
 | `style`   | Code style (no logic change)        | None            |
 | `refactor`| Code refactoring (no logic change)  | None            |
