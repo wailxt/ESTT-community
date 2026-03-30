@@ -886,6 +886,8 @@ export default function ClubAdminPage() {
             const notifiedEmails = new Set();
             let sentCount = 0;
 
+            const { eventReminderEmail } = await import('@/lib/email-templates');
+
             for (const ticket of relatedTickets) {
                 let recipientEmail = ticket.userEmail;
 
@@ -905,16 +907,7 @@ export default function ClubAdminPage() {
                 notifiedEmails.add(recipientEmail);
 
                 const subject = `Rappel : ${event.title}`;
-                const html = `
-                    <p>Bonjour,</p>
-                    <p>Ceci est un rappel pour l'événement <strong>${event.title}</strong> organisé par <strong>${club?.name || 'votre club'}</strong>.</p>
-                    <p>
-                        Date : ${event.date || ''} ${event.time || ''}<br/>
-                        Lieu : ${event.location || 'Campus'}
-                    </p>
-                    <p>À très bientôt,</p>
-                    <p><strong>${club?.name || 'Club'}</strong></p>
-                `;
+                const html = eventReminderEmail(event, club, ticket.id);
 
                 try {
                     await fetch('/api/send-email', {
