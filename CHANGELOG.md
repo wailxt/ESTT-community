@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.12.3...v1.13.0) (2026-03-31)
+
+
+### Features
+
+* add option to update profile pic ([9ed6c7c](https://github.com/abdelhakim-sahifa/ESTT-community/commit/9ed6c7c5e6ed2f6266d14b8e8e578ef37a92c708))
+
 ## [1.12.3](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.12.2...v1.12.3) (2026-03-31)
 
 ## [1.12.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.12.1...v1.12.2) (2026-03-31)
