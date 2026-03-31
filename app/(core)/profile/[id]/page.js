@@ -34,9 +34,11 @@ export default function PublicProfilePage() {
         lastName: '',
         filiere: '',
         startYear: '',
-        bannerUrl: ''
+        bannerUrl: '',
+        photoUrl: ''
     });
     const [bannerUploading, setBannerUploading] = useState(false);
+    const [avatarUploading, setAvatarUploading] = useState(false);
     const [favorites, setFavorites] = useState([]);
     const [loadingFavorites, setLoadingFavorites] = useState(false);
 
@@ -66,7 +68,8 @@ export default function PublicProfilePage() {
                 lastName: profile.lastName || '',
                 filiere: profile.filiere || '',
                 startYear: profile.startYear || '',
-                bannerUrl: profile.bannerUrl || ''
+                bannerUrl: profile.bannerUrl || '',
+                photoUrl: profile.photoUrl || ''
             });
         }
     }, [profile]);
@@ -215,6 +218,30 @@ export default function PublicProfilePage() {
         }
     };
 
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Check file size (max 5MB for ImgBB/Performance)
+        if (file.size > 5 * 1024 * 1024) {
+            alert("L'image est trop volumineuse (max 5 Mo).");
+            return;
+        }
+
+        setAvatarUploading(true);
+        try {
+            const url = await uploadToImgBB(file);
+            await update(ref(db, `users/${id}`), { photoUrl: url, updatedAt: Date.now() });
+            setProfile(prev => ({ ...prev, photoUrl: url }));
+            setFormData(prev => ({ ...prev, photoUrl: url }));
+        } catch (err) {
+            console.error("Error uploading avatar:", err);
+            alert("Erreur lors du téléchargement de la photo de profil.");
+        } finally {
+            setAvatarUploading(false);
+        }
+    };
+
     const handleSaveProfile = async () => {
         if (!currentUser || currentUser.uid !== id) return;
         setSaving(true);
@@ -331,10 +358,41 @@ export default function PublicProfilePage() {
                                         Mentor
                                     </div>
                                 )}
-                                <div className="w-24 h-24 bg-white rounded-full border-4 border-white flex items-center justify-center mx-auto mb-4 shadow-sm z-10 overflow-hidden">
-                                    <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center">
-                                        <User className="w-10 h-10 text-slate-400" />
+                                <div className="w-24 h-24 bg-white rounded-full border-4 border-white flex items-center justify-center mx-auto mb-4 shadow-sm z-10 overflow-hidden relative group">
+                                    <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center relative">
+                                        {profile.photoUrl ? (
+                                            <Image 
+                                                src={profile.photoUrl} 
+                                                alt={`Photo de ${profile.firstName}`} 
+                                                fill 
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <User className="w-10 h-10 text-slate-400" />
+                                        )}
                                     </div>
+
+                                    {currentUser && currentUser.uid === id && (
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center cursor-pointer" onClick={() => {
+                                            if(window.confirm("Cette image sera hébergée sur un service tiers (ImgBB). Voulez-vous continuer ?")) {
+                                                document.getElementById('avatar-quick-upload').click();
+                                            }
+                                        }}>
+                                            {avatarUploading ? (
+                                                <Loader2 className="w-6 h-6 animate-spin text-white" />
+                                            ) : (
+                                                <Camera className="w-6 h-6 text-white" />
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    <input 
+                                        id="avatar-quick-upload" 
+                                        type="file" 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleAvatarUpload} 
+                                    />
                                 </div>
                                 <h1 className="text-xl font-bold text-slate-900">
                                     {profile.firstName} {profile.lastName}
@@ -389,6 +447,45 @@ export default function PublicProfilePage() {
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1.5">
+                                                    <Label htmlFor="photoUrl">Photo de profil</Label>
+                                                        <div className="flex gap-2">
+                                                            <Input 
+                                                                id="photoUrl" 
+                                                                value={formData.photoUrl} 
+                                                                onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })} 
+                                                                placeholder="https://i.ibb.co/..."
+                                                                className="rounded-lg flex-1" 
+                                                            />
+                                                            <Button 
+                                                                type="button"
+                                                                variant="outline" 
+                                                                className="rounded-lg gap-2 shrink-0 bg-slate-50"
+                                                                disabled={avatarUploading}
+                                                                onClick={() => document.getElementById('dialog-avatar-upload').click()}
+                                                            >
+                                                                {avatarUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                                                Uploader
+                                                            </Button>
+                                                            <input 
+                                                                id="dialog-avatar-upload" 
+                                                                type="file" 
+                                                                className="hidden" 
+                                                                accept="image/*" 
+                                                                onChange={handleAvatarUpload} 
+                                                            />
+                                                            {formData.photoUrl && (
+                                                                <Button 
+                                                                    variant="outline" 
+                                                                    size="icon" 
+                                                                    onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                                                                    className="shrink-0 text-destructive hover:bg-red-50 border-red-100"
+                                                                >
+                                                                    <X className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                </div>
+                                                <div className="space-y-1.5">
                                                     <Label htmlFor="bannerUrl">URL de la bannière (Optionnel)</Label>
                                                         <div className="flex gap-2">
                                                             <Input 
@@ -426,7 +523,11 @@ export default function PublicProfilePage() {
                                                                 </Button>
                                                             )}
                                                         </div>
-                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Taille reco: 800x200 pixels • Max 10 Mo</p>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Taille reco: 800x200 max 10 Mo</p>
+                                                </div>
+
+                                                <div className="mt-4 p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs leading-5 text-slate-500">
+                                                    <strong>Mise en garde :</strong> L'outil d'upload d'images utilise <a href="https://imgbb.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">ImgBB</a>, un service tiers. Veuillez ne pas télécharger d'images contenant des informations personnelles sensibles.
                                                 </div>
                                             </div>
                                             <DialogFooter className="flex gap-2">
