@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.12.1...v1.12.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* update github workflows ([517afe9](https://github.com/abdelhakim-sahifa/ESTT-community/commit/517afe9bfb32693a80d973c10608d72d5bf5034e))
+
 ## [1.12.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.12.0...v1.12.1) (2026-03-31)
 
 # [1.12.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.11.1...v1.12.0) (2026-03-26)
