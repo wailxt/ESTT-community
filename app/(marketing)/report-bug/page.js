@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { db, push, ref, set, serverTimestamp } from '@/lib/firebase';
 import { uploadResourceFile } from '@/lib/drive';
+import { uploadToImgBB } from '@/lib/uploadUtils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -59,6 +60,7 @@ export default function ReportBugPage() {
     });
 
     const [attachments, setAttachments] = useState([]);
+    const [uploadingFiles, setUploadingFiles] = useState({}); // Track progress for individual files
     const [uploadProgress, setUploadProgress] = useState(0);
 
     // Auto-detection logic and user linking
@@ -107,14 +109,56 @@ export default function ReportBugPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         const files = Array.from(e.target.files);
-        // Basic validation for file size and type could be added here
-        setAttachments(prev => [...prev, ...files]);
+        if (files.length === 0) return;
+
+        for (const file of files) {
+            const fileId = Math.random().toString(36).substring(7);
+            
+            // Add placeholder to state
+            setAttachments(prev => [...prev, { 
+                id: fileId,
+                name: file.name, 
+                type: file.type, 
+                size: file.size,
+                status: 'uploading' 
+            }]);
+
+            try {
+                let uploadedUrl = '';
+                
+                if (file.type.startsWith('image/')) {
+                    // Use ImgBB for images
+                    uploadedUrl = await uploadToImgBB(file);
+                } else {
+                    // Fallback to Google Drive for non-images
+                    const metadata = {
+                        isBugReport: true,
+                        displayTitle: `BUG_ATTACHMENT_${file.name.split('.')[0]}`
+                    };
+                    const uploaded = await uploadResourceFile(file, metadata);
+                    uploadedUrl = uploaded.publicUrl;
+                }
+
+                setAttachments(prev => prev.map(att => 
+                    att.id === fileId 
+                        ? { ...att, url: uploadedUrl, status: 'done' } 
+                        : att
+                ));
+            } catch (err) {
+                console.error(`Error uploading ${file.name}:`, err);
+                setAttachments(prev => prev.map(att => 
+                    att.id === fileId 
+                        ? { ...att, status: 'error' } 
+                        : att
+                ));
+            }
+        }
     };
 
-    const removeAttachment = (index) => {
-        setAttachments(prev => prev.filter((_, i) => i !== index));
+    const removeAttachment = (id) => {
+        setAttachments(prev => prev.filter(att => att.id !== id));
     };
 
     const generateReferenceId = () => {
@@ -143,43 +187,15 @@ export default function ReportBugPage() {
             const bugReportsRef = ref(db, 'bugReports');
             const newBugRef = push(bugReportsRef);
 
-            let uploadedAttachments = [];
-
-            // Upload attachments if any to Google Drive
-            if (attachments.length > 0) {
-                const totalFiles = attachments.length;
-                let filesUploaded = 0;
-
-                for (const file of attachments) {
-                    try {
-                        const metadata = {
-                            isBugReport: true,
-                            displayTitle: `BUG_${refId}_${file.name.split('.')[0]}`
-                        };
-
-                        const uploaded = await uploadResourceFile(file, metadata, (pc) => {
-                            // Simple calculation for overall progress
-                            const currentProgress = ((filesUploaded / totalFiles) * 100) + (pc / totalFiles);
-                            setUploadProgress(Math.round(currentProgress));
-                        });
-
-                        if (uploaded && uploaded.publicUrl) {
-                            uploadedAttachments.push({
-                                name: file.name,
-                                url: uploaded.publicUrl,
-                                driveId: uploaded.id,
-                                type: file.type,
-                                size: file.size
-                            });
-                        }
-                        filesUploaded++;
-                    } catch (uploadErr) {
-                        console.error(`Error uploading ${file.name}:`, uploadErr);
-                        // We could continue or stop here. Let's continue for other files.
-                    }
-                }
-                setUploadProgress(100);
-            }
+            // Attachments are already uploaded via handleFileChange
+            const uploadedAttachments = attachments
+                .filter(att => att.status === 'done')
+                .map(att => ({
+                    name: att.name,
+                    url: att.url,
+                    type: att.type,
+                    size: att.size
+                }));
 
             const reportData = {
                 ...formData,
@@ -190,7 +206,7 @@ export default function ReportBugPage() {
                 timestamp: Date.now(),
                 userId: user.uid,
                 reporterName: profile ? `${profile.firstName} ${profile.lastName}` : (user.displayName || 'Utilisateur ESTT'),
-                storageType: 'google-drive'
+                storageType: 'imgbb/drive'
             };
 
             await set(newBugRef, reportData);
@@ -479,19 +495,39 @@ export default function ReportBugPage() {
                                 </div>
 
                                 {attachments.length > 0 && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                                        {attachments.map((file, index) => (
-                                            <div key={index} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-sm">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                                        {attachments.map((file) => (
+                                            <div key={file.id} className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200 shadow-sm relative overflow-hidden group">
+                                                {file.status === 'uploading' && (
+                                                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center backdrop-blur-[1px] z-10">
+                                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                                    </div>
+                                                )}
+                                                
                                                 <div className="flex items-center gap-3 overflow-hidden">
-                                                    <Info className="w-4 h-4 text-slate-400 shrink-0" />
-                                                    <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
+                                                    {file.type.startsWith('image/') && file.url ? (
+                                                        <div className="w-10 h-10 rounded-lg overflow-hidden border shrink-0">
+                                                            <img src={file.url} alt="Preview" className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border">
+                                                            <Info className="w-5 h-5 text-slate-400" />
+                                                        </div>
+                                                    )}
+                                                    <div className="flex flex-col min-w-0">
+                                                        <span className="text-xs font-bold text-slate-700 truncate">{file.name}</span>
+                                                        <span className="text-[10px] text-slate-400">
+                                                            {(file.size / 1024).toFixed(1)} KB • {file.status === 'error' ? 'Échec' : 'Prêt'}
+                                                        </span>
+                                                    </div>
                                                 </div>
+                                                
                                                 <Button
                                                     type="button"
                                                     variant="ghost"
                                                     size="icon"
-                                                    onClick={() => removeAttachment(index)}
-                                                    className="h-8 w-8 text-destructive hover:bg-destructive/5"
+                                                    onClick={() => removeAttachment(file.id)}
+                                                    className="h-8 w-8 text-destructive hover:bg-destructive/5 shrink-0"
                                                 >
                                                     <X className="w-4 h-4" />
                                                 </Button>
