@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award } from 'lucide-react';
+import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award, Camera, Upload } from 'lucide-react';
 import { cn, getUserLevel } from '@/lib/utils';
+import { uploadToImgBB } from '@/lib/uploadUtils';
 
 export default function PublicProfilePage() {
     const { id } = useParams();
@@ -32,8 +33,10 @@ export default function PublicProfilePage() {
         firstName: '',
         lastName: '',
         filiere: '',
-        startYear: ''
+        startYear: '',
+        bannerUrl: ''
     });
+    const [bannerUploading, setBannerUploading] = useState(false);
     const [favorites, setFavorites] = useState([]);
     const [loadingFavorites, setLoadingFavorites] = useState(false);
 
@@ -62,7 +65,8 @@ export default function PublicProfilePage() {
                 firstName: profile.firstName || '',
                 lastName: profile.lastName || '',
                 filiere: profile.filiere || '',
-                startYear: profile.startYear || ''
+                startYear: profile.startYear || '',
+                bannerUrl: profile.bannerUrl || ''
             });
         }
     }, [profile]);
@@ -187,6 +191,30 @@ export default function PublicProfilePage() {
         }
     };
 
+    const handleBannerUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Check file size (max 10MB for ImgBB/Performance)
+        if (file.size > 10 * 1024 * 1024) {
+            alert("L'image est trop volumineuse (max 10 Mo).");
+            return;
+        }
+
+        setBannerUploading(true);
+        try {
+            const url = await uploadToImgBB(file);
+            await update(ref(db, `users/${id}`), { bannerUrl: url, updatedAt: Date.now() });
+            setProfile(prev => ({ ...prev, bannerUrl: url }));
+            setFormData(prev => ({ ...prev, bannerUrl: url }));
+        } catch (err) {
+            console.error("Error uploading banner:", err);
+            alert("Erreur lors du téléchargement de la bannière.");
+        } finally {
+            setBannerUploading(false);
+        }
+    };
+
     const handleSaveProfile = async () => {
         if (!currentUser || currentUser.uid !== id) return;
         setSaving(true);
@@ -249,23 +277,73 @@ export default function PublicProfilePage() {
                     <div className="space-y-4">
 
                         {/* Profile Card */}
-                        <div className="border border-slate-200 rounded-xl p-8 text-center relative">
-                            {isMentor && (
-                                <div className="absolute top-3 right-3 bg-yellow-400 text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider">
-                                    Mentor
-                                </div>
-                            )}
-                            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <User className="w-9 h-9 text-slate-400" />
+                        <div className="border border-slate-200 rounded-xl overflow-hidden text-center relative bg-white">
+                            {/* Banner Area */}
+                            <div className="h-28 bg-slate-50 relative group">
+                                {profile.bannerUrl ? (
+                                    <Image 
+                                        src={profile.bannerUrl} 
+                                        alt="Profile Banner" 
+                                        fill 
+                                        priority
+                                        className="object-cover"
+                                    />
+                                ) : (
+                                    <Image 
+                                        src="https://i.ibb.co/hRFNsKvJ/default.png" 
+                                        alt="Default Profile Banner" 
+                                        fill 
+                                        priority
+                                        className="object-cover"
+                                    />
+                                )}
+                                
+                                {currentUser && currentUser.uid === id && (
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center backdrop-blur-[2px]">
+                                        <Button 
+                                            variant="secondary" 
+                                            size="sm" 
+                                            className="rounded-full shadow-lg h-8 text-[11px] font-bold"
+                                            disabled={bannerUploading}
+                                            onClick={() => document.getElementById('banner-upload').click()}
+                                        >
+                                            {bannerUploading ? (
+                                                <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" />
+                                            ) : (
+                                                <Camera className="w-3.5 h-3.5 mr-2" />
+                                            )}
+                                            {bannerUploading ? 'Téléchargement...' : 'Changer la bannière'}
+                                        </Button>
+                                        <input 
+                                            id="banner-upload" 
+                                            type="file" 
+                                            className="hidden" 
+                                            accept="image/*" 
+                                            onChange={handleBannerUpload} 
+                                        />
+                                    </div>
+                                )}
                             </div>
-                            <h1 className="text-xl font-bold text-slate-900">
-                                {profile.firstName} {profile.lastName}
-                            </h1>
-                            <p className="text-slate-500 text-sm mt-1">
-                                {profile.filiere} · {level === 1 ? 'S1/S2' : 'S3/S4'}
-                            </p>
 
-                            <div className="flex justify-center gap-2 mt-6">
+                            <div className="p-8 -mt-12 relative">
+                                {isMentor && (
+                                    <div className="absolute top-3 right-3 bg-yellow-400 text-white px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm z-10 border border-white/20">
+                                        Mentor
+                                    </div>
+                                )}
+                                <div className="w-24 h-24 bg-white rounded-full border-4 border-white flex items-center justify-center mx-auto mb-4 shadow-sm z-10 overflow-hidden">
+                                    <div className="w-full h-full bg-slate-100 rounded-full flex items-center justify-center">
+                                        <User className="w-10 h-10 text-slate-400" />
+                                    </div>
+                                </div>
+                                <h1 className="text-xl font-bold text-slate-900">
+                                    {profile.firstName} {profile.lastName}
+                                </h1>
+                                <p className="text-slate-500 text-sm mt-1">
+                                    {profile.filiere} · {level === 1 ? 'S1/S2' : 'S3/S4'}
+                                </p>
+
+                                <div className="flex justify-center gap-2 mt-6">
                                 {currentUser && currentUser.uid === id ? (
                                     <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                                         <DialogTrigger asChild>
@@ -310,6 +388,46 @@ export default function PublicProfilePage() {
                                                         <Input id="startYear" type="number" value={formData.startYear} onChange={(e) => setFormData({ ...formData, startYear: e.target.value })} className="rounded-lg" />
                                                     </div>
                                                 </div>
+                                                <div className="space-y-1.5">
+                                                    <Label htmlFor="bannerUrl">URL de la bannière (Optionnel)</Label>
+                                                        <div className="flex gap-2">
+                                                            <Input 
+                                                                id="bannerUrl" 
+                                                                value={formData.bannerUrl} 
+                                                                onChange={(e) => setFormData({ ...formData, bannerUrl: e.target.value })} 
+                                                                placeholder="https://i.ibb.co/..."
+                                                                className="rounded-lg flex-1" 
+                                                            />
+                                                            <Button 
+                                                                type="button"
+                                                                variant="outline" 
+                                                                className="rounded-lg gap-2 shrink-0 bg-slate-50"
+                                                                disabled={bannerUploading}
+                                                                onClick={() => document.getElementById('dialog-banner-upload').click()}
+                                                            >
+                                                                {bannerUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                                                Uploader
+                                                            </Button>
+                                                            <input 
+                                                                id="dialog-banner-upload" 
+                                                                type="file" 
+                                                                className="hidden" 
+                                                                accept="image/*" 
+                                                                onChange={handleBannerUpload} 
+                                                            />
+                                                            {formData.bannerUrl && (
+                                                                <Button 
+                                                                    variant="outline" 
+                                                                    size="icon" 
+                                                                    onClick={() => setFormData({ ...formData, bannerUrl: '' })}
+                                                                    className="shrink-0 text-destructive hover:bg-red-50 border-red-100"
+                                                                >
+                                                                    <X className="w-4 h-4" />
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Taille reco: 800x200 pixels • Max 10 Mo</p>
+                                                </div>
                                             </div>
                                             <DialogFooter className="flex gap-2">
                                                 <Button variant="ghost" onClick={() => setIsEditOpen(false)} className="rounded-lg">Annuler</Button>
@@ -336,6 +454,7 @@ export default function PublicProfilePage() {
                                 </Button>
                             </div>
                         </div>
+                    </div>
 
                         {/* About */}
                         <div className="border border-slate-200 rounded-xl p-5">

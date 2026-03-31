@@ -21,6 +21,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'api.qrserver.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'i.ibb.co',
+      },
     ],
   },
   async redirects() {
