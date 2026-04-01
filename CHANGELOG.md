@@ -1,3 +1,10 @@
+## [1.13.4](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.13.3...v1.13.4) (2026-04-01)
+
+
+### Bug Fixes
+
+* #BUG-95E74T  Replace déconnexion icon to "LogOut" instade of "X" ([52ba892](https://github.com/abdelhakim-sahifa/ESTT-community/commit/52ba8927276c85de96641163ce6914bbebcaae8c)), closes [#BUG-95E74](https://github.com/abdelhakim-sahifa/ESTT-community/issues/BUG-95E74)
+
 ## [1.13.3](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.13.2...v1.13.3) (2026-04-01)
 
 ## [1.13.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.13.1...v1.13.2) (2026-04-01)
