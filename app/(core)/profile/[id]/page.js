@@ -802,7 +802,7 @@ export default function PublicProfilePage() {
                                     onClick={handleLogout}
                                     className="w-full justify-start rounded-lg border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 gap-2 text-sm"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <LogOut className="w-4 h-4" />
                                     Déconnexion
                                 </Button>
                             </div>
