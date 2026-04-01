@@ -48,7 +48,7 @@ const StatusBadge = ({ status }) => {
 export default function UserAdsDashboard() {
     const { user } = useAuth();
     const router = useRouter();
-    const { showSuccess, showWarning, showError } = useDialog();
+    const { showSuccess, showWarning, showError, showConfirm } = useDialog();
     const searchParams = useSearchParams();
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -98,7 +98,8 @@ export default function UserAdsDashboard() {
                 return;
             }
         } else {
-            if (!window.confirm("Voulez-vous vraiment supprimer cette annonce ?")) return;
+            const confirmed = await showConfirm("Voulez-vous vraiment supprimer cette annonce ?", { type: 'danger', title: 'Supprimer l\'annonce', confirmLabel: 'Supprimer' });
+            if (!confirmed) return;
         }
         try {
             await remove(ref(db, `studentAds/${ad.id}`));

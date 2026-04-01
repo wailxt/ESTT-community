@@ -711,7 +711,11 @@ export default function ClubAdminPage() {
     };
 
     const handleDeleteForm = async (formId) => {
-        const confirmed = await showConfirm('Êtes-vous sûr ? Cela supprimera également toutes les soumissions associées.');
+        const confirmed = await showConfirm('Êtes-vous sûr ? Cela supprimera également toutes les soumissions associées.', {
+            type: 'danger',
+            title: 'Supprimer le formulaire',
+            confirmLabel: 'Supprimer'
+        });
         if (!confirmed) return;
 
         try {
@@ -813,7 +817,11 @@ export default function ClubAdminPage() {
     };
 
     const handleDeleteEvent = async (eventId) => {
-        const confirmed = await showConfirm('Êtes-vous sûr ? Les tickets associés resteront en base mais ne seront plus liés à un événement actif.');
+        const confirmed = await showConfirm('Êtes-vous sûr ? Les tickets associés resteront en base mais ne seront plus liés à un événement actif.', {
+            type: 'danger',
+            title: 'Supprimer l\'événement',
+            confirmLabel: 'Supprimer'
+        });
         if (!confirmed) return;
 
         try {
@@ -890,7 +898,11 @@ export default function ClubAdminPage() {
     };
 
     const handleRemoveMember = async (memberEmail) => {
-        const confirmed = await showConfirm('Êtes-vous sûr de vouloir supprimer ce membre ?');
+        const confirmed = await showConfirm('Êtes-vous sûr de vouloir supprimer ce membre ?', {
+            type: 'danger',
+            title: 'Retirer le membre',
+            confirmLabel: 'Retirer'
+        });
         if (!confirmed) return;
 
         try {
@@ -911,7 +923,11 @@ export default function ClubAdminPage() {
 
     // Manual event reminders (no automation – triggered from admin UI)
     const handleSendEventReminders = async (eventId) => {
-        const confirmed = await showConfirm("Envoyer un email de rappel à tous les participants inscrits à cet événement ?");
+        const confirmed = await showConfirm("Envoyer un email de rappel à tous les participants inscrits à cet événement ?", {
+            type: 'info',
+            title: 'Rappels par email',
+            confirmLabel: 'Envoyer'
+        });
         if (!confirmed) return;
 
         try {
@@ -1072,7 +1088,11 @@ export default function ClubAdminPage() {
             return;
         }
 
-        const confirmed = await showConfirm(`Envoyer cet email à ${targetEmails.length} destinataire(s) ?`);
+        const confirmed = await showConfirm(`Envoyer cet email à ${targetEmails.length} destinataire(s) ?`, {
+            type: 'info',
+            title: 'Confirmation d\'envoi',
+            confirmLabel: 'Envoyer'
+        });
         if (!confirmed) return;
 
         setSendingEmails(true);

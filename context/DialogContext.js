@@ -71,6 +71,9 @@ export function DialogProvider({ children }) {
     const showConfirm = useCallback((message, options = {}) => {
         return new Promise((resolve) => {
             const id = Date.now() + Math.random();
+            const type = options.type || 'warning';
+            const confirmVariant = options.confirmVariant || (type === 'danger' ? 'danger' : 'primary');
+
             const confirmActions = [
                 {
                     label: options.cancelLabel || 'Annuler',
@@ -82,7 +85,7 @@ export function DialogProvider({ children }) {
                 },
                 {
                     label: options.confirmLabel || 'Confirmer',
-                    variant: 'primary',
+                    variant: confirmVariant,
                     onClick: () => {
                         resolve(true);
                         closeDialog(id);
@@ -92,7 +95,7 @@ export function DialogProvider({ children }) {
 
             showDialog({
                 id,
-                type: 'warning',
+                type: type,
                 title: options.title || 'Confirmation',
                 message,
                 actions: confirmActions,

@@ -37,7 +37,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function AdminBugReports({ reports = [] }) {
-    const { showError } = useDialog();
+    const { showError, showConfirm } = useDialog();
     const [actionLoading, setActionLoading] = useState(null);
     const [selectedBug, setSelectedBug] = useState(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -130,7 +130,12 @@ export default function AdminBugReports({ reports = [] }) {
     };
 
     const handleDeleteBug = async (bugId) => {
-        if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce rapport de bug ?')) return;
+        const confirmed = await showConfirm('Êtes-vous sûr de vouloir supprimer ce rapport de bug ?', {
+            type: 'danger',
+            title: 'Supprimer le rapport',
+            confirmLabel: 'Supprimer'
+        });
+        if (!confirmed) return;
 
         try {
             setActionLoading(bugId);

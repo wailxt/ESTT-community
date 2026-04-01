@@ -12,10 +12,15 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Trash2 } from 'lucide-react';
 
 export default function AdminClubChanges({ requests }) {
-    const { showSuccess, showError } = useDialog();
+    const { showSuccess, showError, showConfirm } = useDialog();
 
     const handleApproveChangeRequest = async (request) => {
-        if (!confirm("Approuver cette modification ?")) return;
+        const confirmed = await showConfirm("Approuver cette modification ?", {
+            type: 'info',
+            title: 'Approuver',
+            confirmLabel: 'Approuver'
+        });
+        if (!confirmed) return;
 
         try {
             const clubRef = ref(db, `clubs/${request.clubId}`);
@@ -39,7 +44,12 @@ export default function AdminClubChanges({ requests }) {
     };
 
     const handleRejectChangeRequest = async (requestId) => {
-        if (!confirm("Rejeter cette demande de modification ?")) return;
+        const confirmed = await showConfirm("Rejeter cette demande de modification ?", {
+            type: 'danger',
+            title: 'Rejeter',
+            confirmLabel: 'Rejeter'
+        });
+        if (!confirmed) return;
 
         try {
             await update(ref(db, `clubChangeRequests/${requestId}`), {

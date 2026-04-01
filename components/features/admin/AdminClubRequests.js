@@ -14,14 +14,19 @@ import { CheckCircle2 } from 'lucide-react';
 import RejectionDialog from './RejectionDialog';
 
 export default function AdminClubRequests({ requests }) {
-    const { showSuccess, showError, showWarning } = useDialog();
+    const { showSuccess, showError, showWarning, showConfirm } = useDialog();
     const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
     const [itemToReject, setItemToReject] = useState(null);
     const [rejectionReason, setRejectionReason] = useState('');
     const [rejecting, setRejecting] = useState(false);
 
     const handleApproveClubRequest = async (requestId) => {
-        if (!confirm("Approuver cette demande de club ?")) return;
+        const confirmed = await showConfirm("Approuver cette demande de club ?", {
+            type: 'info',
+            title: 'Approuver',
+            confirmLabel: 'Approuver'
+        });
+        if (!confirmed) return;
 
         try {
             const { createClubFromRequest } = await import('@/lib/clubUtils');

@@ -11,7 +11,7 @@ import { Loader2, Link as LinkIcon, Trash2, Copy, ExternalLink, Plus, Search } f
 import { Badge } from '@/components/ui/badge';
 
 export default function AdminShortUrls() {
-    const { showError, showSuccess } = useDialog();
+    const { showError, showSuccess, showConfirm } = useDialog();
     const [urls, setUrls] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -71,7 +71,12 @@ export default function AdminShortUrls() {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Êtes-vous sûr de vouloir supprimer cette redirection ?')) return;
+        const confirmed = await showConfirm('Êtes-vous sûr de vouloir supprimer cette redirection ?', {
+            type: 'danger',
+            title: 'Supprimer la redirection',
+            confirmLabel: 'Supprimer'
+        });
+        if (!confirmed) return;
 
         try {
             await remove(ref(db, `shortUrls/${id}`));

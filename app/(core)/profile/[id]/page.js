@@ -19,7 +19,7 @@ import { uploadToImgBB } from '@/lib/uploadUtils';
 export default function PublicProfilePage() {
     const { id } = useParams();
     const { user: currentUser, signOut } = useAuth();
-    const { showWarning, showError, showSuccess, showInfo } = useDialog();
+    const { showWarning, showError, showSuccess, showInfo, showConfirm } = useDialog();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -259,7 +259,8 @@ export default function PublicProfilePage() {
     };
 
     const handleLogout = async () => {
-        if (!window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) return;
+        const confirmed = await showConfirm("Êtes-vous sûr de vouloir vous déconnecter ?", { type: 'danger', title: 'Déconnexion', confirmLabel: 'Déconnexion' });
+        if (!confirmed) return;
         try { await signOut(); } catch (error) { console.error("Error signing out", error); }
     };
 
@@ -376,8 +377,9 @@ export default function PublicProfilePage() {
                                     </div>
 
                                     {currentUser && currentUser.uid === id && (
-                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center cursor-pointer" onClick={() => {
-                                            if(window.confirm("Cette image sera hébergée sur un service tiers (ImgBB). Voulez-vous continuer ?")) {
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center cursor-pointer" onClick={async () => {
+                                            const confirmed = await showConfirm("Cette image sera hébergée sur un service tiers (ImgBB). Voulez-vous continuer ?", { type: 'info', title: 'Upload d\'image', confirmLabel: 'Continuer' });
+                                            if(confirmed) {
                                                 document.getElementById('avatar-quick-upload').click();
                                             }
                                         }}>

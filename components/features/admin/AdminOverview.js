@@ -15,11 +15,16 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 export default function AdminOverview({ stats, resources, setActiveTab }) {
-    const { showSuccess, showError } = useDialog();
+    const { showSuccess, showError, showConfirm } = useDialog();
     const [rebuilding, setRebuilding] = useState(false);
 
     const handleRebuildIndex = async () => {
-        if (!confirm("Voulez-vous vraiment reconstruire l'index de recherche ? Cela indexera toutes les ressources existantes.")) return;
+        const confirmed = await showConfirm("Voulez-vous vraiment reconstruire l'index de recherche ? Cela indexera toutes les ressources existantes.", {
+            type: 'warning',
+            title: 'Reconstruire l\'index',
+            confirmLabel: 'Reconstruire'
+        });
+        if (!confirmed) return;
 
         setRebuilding(true);
         try {

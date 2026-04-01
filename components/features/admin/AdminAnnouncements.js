@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Clock, Trash2 } from 'lucide-react';
 
 export default function AdminAnnouncements({ announcements, userEmail }) {
-    const { showWarning, showSuccess, showError } = useDialog();
+    const { showWarning, showSuccess, showError, showConfirm } = useDialog();
     const [announcementForm, setAnnouncementForm] = useState({
         title: '',
         content: '',
@@ -49,7 +49,8 @@ export default function AdminAnnouncements({ announcements, userEmail }) {
     };
 
     const handleDeleteAnnouncement = async (id) => {
-        if (!confirm("Supprimer cette annonce ?")) return;
+        const confirmed = await showConfirm("Supprimer cette annonce ?", { type: 'danger', title: 'Suppression', confirmLabel: 'Supprimer' });
+        if (!confirmed) return;
         try {
             await remove(ref(db, `adminAnnouncements/${id}`));
             showSuccess("Annonce supprimée.");

@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { reportDismissedEmail, reportDeletedEmail } from '@/lib/email-templates';
 
 export default function AdminReports({ reports }) {
-    const { showError, showSuccess } = useDialog();
+    const { showError, showSuccess, showConfirm } = useDialog();
     const [actionLoading, setActionLoading] = useState(null);
 
     const handleDismissReport = async (report) => {
@@ -39,7 +39,12 @@ export default function AdminReports({ reports }) {
     };
 
     const handleDeleteResource = async (report) => {
-        if (!window.confirm('Êtes-vous sûr de vouloir supprimer définitivement cette ressource et ce signalement ?')) {
+        const confirmed = await showConfirm('Êtes-vous sûr de vouloir supprimer définitivement cette ressource et ce signalement ?', {
+            type: 'danger',
+            title: 'Supprimer définitivement',
+            confirmLabel: 'Supprimer'
+        });
+        if (!confirmed) {
             return;
         }
 
