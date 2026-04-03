@@ -105,6 +105,13 @@ export default function AdminSidebar({ activeTab, setActiveTab, profile, stats =
                     <CreditCard className="w-4 h-4" /> Annonces Étudiants
                 </Button>
                 <Button
+                    variant={activeTab === 'communication' ? 'default' : 'ghost'}
+                    className="justify-start gap-3 h-11"
+                    onClick={() => setActiveTab('communication')}
+                >
+                    <Megaphone className="w-4 h-4" /> Communication
+                </Button>
+                <Button
                     variant={activeTab === 'notifications' ? 'default' : 'ghost'}
                     className="justify-start gap-3 h-11"
                     onClick={() => setActiveTab('notifications')}

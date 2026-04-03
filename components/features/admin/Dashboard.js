@@ -23,6 +23,7 @@ import AdminNotifications from './AdminNotifications';
 import AdminFastContribute from './AdminFastContribute';
 import AdminBugReports from './AdminBugReports';
 import AdminShortUrls from './AdminShortUrls';
+import AdminCommunication from './AdminCommunication';
 
 
 export default function AdminDashboard() {
@@ -240,6 +241,10 @@ export default function AdminDashboard() {
                             settings={notificationSettings}
                             setSettings={setNotificationSettings}
                         />
+                    )}
+
+                    {activeTab === 'communication' && (
+                        <AdminCommunication users={users} />
                     )}
 
                     {activeTab === 'notifications' && (
