@@ -18,10 +18,19 @@ import ClubsPreview from '@/components/features/marketing/ClubsPreview';
 import AdsPreview from '@/components/features/marketing/AdsPreview';
 import LatestActivity from '@/components/features/marketing/LatestActivity';
 import StructuredData from '@/components/layout/StructuredData';
+import PromotionalModal from '@/components/features/promotions/PromotionalModal';
+import { useSearchParams } from 'next/navigation';
+
 
 
 export default function Home() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const [showPromoModal, setShowPromoModal] = useState(false);
+    const [fromId, setFromId] = useState('');
+    const [urlCode, setUrlCode] = useState('');
+
+
     const [stats, setStats] = useState({
         resources: 0,
         contributions: 0,
@@ -35,6 +44,18 @@ export default function Home() {
     const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
     const [studentAds, setStudentAds] = useState([]);
     const [loadingAds, setLoadingAds] = useState(true);
+
+    useEffect(() => {
+        const from = searchParams.get('from');
+        const code = searchParams.get('code');
+        if (from && from.startsWith('qr')) {
+            setFromId(from);
+            if (code) setUrlCode(code);
+            setShowPromoModal(true);
+        }
+    }, [searchParams]);
+
+
 
     useEffect(() => {
         if (!firebaseDb) return;
@@ -243,6 +264,15 @@ export default function Home() {
             <AdsPreview ads={studentAds} />
 
             <LatestActivity />
+
+            <PromotionalModal 
+                isOpen={showPromoModal} 
+                onClose={() => setShowPromoModal(false)} 
+                fromId={fromId}
+                initialCode={urlCode}
+            />
+
+
 
         </main>
     );

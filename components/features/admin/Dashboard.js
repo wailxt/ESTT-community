@@ -24,6 +24,8 @@ import AdminFastContribute from './AdminFastContribute';
 import AdminBugReports from './AdminBugReports';
 import AdminShortUrls from './AdminShortUrls';
 import AdminCommunication from './AdminCommunication';
+import AdminRewardCodes from './AdminRewardCodes';
+
 
 
 export default function AdminDashboard() {
@@ -258,6 +260,11 @@ export default function AdminDashboard() {
                     {activeTab === 'shortUrls' && (
                         <AdminShortUrls />
                     )}
+
+                    {activeTab === 'rewardCodes' && (
+                        <AdminRewardCodes />
+                    )}
+
                 </main>
 
             </div>

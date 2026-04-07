@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { db as staticDb } from '@/lib/data';
@@ -24,6 +24,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 export default function SignupPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+
     const { signUp, sendVerification } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
@@ -37,6 +39,17 @@ export default function SignupPage() {
     const [message, setMessage] = useState('');
 
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const emailParam = searchParams.get('email');
+        if (emailParam) {
+            setFormData(prev => ({
+                ...prev,
+                email: decodeURIComponent(emailParam)
+            }));
+        }
+    }, [searchParams]);
+
 
     const currentYear = new Date().getFullYear();
     const years = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
@@ -138,6 +151,45 @@ export default function SignupPage() {
                 });
             } catch (err) {
                 console.error("Failed to send welcome email:", err);
+            }
+
+            // Check for a pending QR reward claim
+            try {
+                const { get, update: dbUpdate } = await import('firebase/database');
+                const encodedEmail = formData.email.toLowerCase().replace(/\./g, ',');
+                const claimSnap = await get(ref(db, `qrClaims/${encodedEmail}`));
+
+                if (claimSnap.exists()) {
+                    const claim = claimSnap.val();
+                    if (claim.status === 'pending' && claim.reward) {
+                        const rewardStr = claim.reward;
+                        let days = 30;
+                        if (rewardStr.includes('month')) {
+                            days = (parseInt(rewardStr.split('_')[1]) || 1) * 30;
+                        } else if (rewardStr.includes('day')) {
+                            days = parseInt(rewardStr.split('_')[1]) || 30;
+                        }
+                        const expiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+                        // Apply subscription to new user profile
+                        await dbUpdate(ref(db, `users/${user.uid}`), {
+                            subscription: {
+                                type: rewardStr,
+                                expiresAt: expiresAt
+                            }
+                        });
+
+                        // Mark claim as applied
+                        await dbUpdate(ref(db, `qrClaims/${encodedEmail}`), {
+                            status: 'applied',
+                            appliedAt: Date.now(),
+                            appliedToUid: user.uid
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to apply QR reward:", err);
+                // Non-blocking: don't fail signup if reward application fails
             }
 
             setMessage('Compte créé ! Un email de vérification a été envoyé à votre adresse académique. Veuillez vérifier votre boîte de réception avant de vous connecter.');

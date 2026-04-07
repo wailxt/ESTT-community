@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import UnifiedDialog from '@/components/ui/UnifiedDialog';
-import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award, Camera, Upload, BadgeCheck, ShieldCheck, Trophy, Zap, LogOut, Bug } from 'lucide-react';
+import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award, Camera, Upload, BadgeCheck, ShieldCheck, Trophy, Zap, LogOut, Bug, Gem } from 'lucide-react';
 import { cn, getUserLevel } from '@/lib/utils';
 import { uploadToImgBB } from '@/lib/uploadUtils';
 
@@ -396,6 +396,14 @@ export default function PublicProfilePage() {
     // New stats for badges
     const verifiedReports = profile?.stats?.verifiedReports || 0;
     const reportedBugsFixed = profile?.stats?.reportedBugsFixed || 0;
+    const isSubscribed = profile?.subscription?.expiresAt && profile.subscription.expiresAt > Date.now();
+    const subscriptionLabel = (() => {
+        if (!isSubscribed) return null;
+        const t = profile.subscription.type || '';
+        if (t.includes('month')) return `ESTTPlus+ · ${t.split('_')[1].replace('month', ' mois')}`;
+        if (t.includes('day')) return `ESTTPlus+ · ${t.split('_')[1].replace('day', ' jours')}`;
+        return 'ESTTPlus+';
+    })();
 
     return (
         <main className="min-h-screen bg-white py-12 border-t border-slate-100">
@@ -510,6 +518,8 @@ export default function PublicProfilePage() {
                                         </div>
                                     )}
 
+
+
                                     {affiliatedClub && (
                                         <Link href={`/clubs/${affiliatedClub.id}`} className="group relative flex items-center">
                                             <div className="w-[18px] h-[18px] rounded-[3px] overflow-hidden border border-slate-100 bg-white">
@@ -536,6 +546,20 @@ export default function PublicProfilePage() {
                                 <p className="text-slate-500 text-sm mt-1">
                                     {profile.filiere} · {level === 1 ? 'S1/S2' : 'S3/S4'}
                                 </p>
+                                
+                                {isSubscribed && (
+                                    <div className="flex justify-center mt-3">
+                                        <div className="group relative flex items-center">
+                                            <span className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-1 rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-md shadow-violet-200/50 cursor-default">
+                                                <Gem className="w-3.5 h-3.5" />
+                                                {subscriptionLabel}
+                                            </span>
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
+                                                Expire le {new Date(profile.subscription.expiresAt).toLocaleDateString('fr-FR')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex justify-center gap-2 mt-6">
                                     {currentUser && currentUser.uid === id ? (
@@ -752,7 +776,14 @@ export default function PublicProfilePage() {
                                         Bug Hunter
                                     </span>
                                 )}
-                                {contributionsCount === 0 && starCount < 5 && level !== 2 && verifiedReports === 0 && reportedBugsFixed === 0 && (
+                                {isSubscribed && (
+                                    <span className="inline-flex items-center gap-1.5 text-xs font-black px-2.5 py-1 rounded-md bg-gradient-to-r from-violet-600 to-indigo-500 text-white shadow-sm shadow-violet-200">
+                                        <Gem className="w-3.5 h-3.5" />
+                                        {subscriptionLabel}
+                                    </span>
+                                )}
+                                {contributionsCount === 0 && starCount < 5 && level !== 2 && verifiedReports === 0 && reportedBugsFixed === 0 && !isSubscribed && (
+
                                     <span className="text-xs text-slate-400 italic">Aucun succès pour le moment.</span>
                                 )}
                             </div>
