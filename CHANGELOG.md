@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.14.0...v1.15.0) (2026-04-07)
+
+
+### Features
+
+* add rewards + ESTTplus+ ([29d6d4b](https://github.com/abdelhakim-sahifa/ESTT-community/commit/29d6d4b3d4d9fc9d49ddaa48d020d63ebf87e982))
+
 # [1.14.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.13.5...v1.14.0) (2026-04-03)
 
 
