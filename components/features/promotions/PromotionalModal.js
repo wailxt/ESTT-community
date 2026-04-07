@@ -24,6 +24,7 @@ import {
 import { db, ref, get, set, update } from '@/lib/firebase';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { rewardClaimedEmail } from '@/lib/email-templates';
 
 export default function PromotionalModal({ isOpen, onClose, fromId, initialCode }) {
     const router = useRouter();
@@ -110,6 +111,22 @@ export default function PromotionalModal({ isOpen, onClose, fromId, initialCode 
                     status: 'applied'
                 });
 
+                // NON-BLOCKING: Send the premium confirmation email
+                try {
+                    const htmlEmail = rewardClaimedEmail({ isGuest: false, rewardType: rewardStr, email: user.email });
+                    fetch('/api/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: user.email,
+                            subject: '🎉 Votre badge ESTTPlus+ est désormais actif !',
+                            html: htmlEmail
+                        })
+                    }); 
+                } catch (emailErr) {
+                    console.error("Non-blocking email error:", emailErr);
+                }
+
                 setStep(3);
             } catch (err) {
                 console.error("Error applying reward:", err);
@@ -195,6 +212,21 @@ export default function PromotionalModal({ isOpen, onClose, fromId, initialCode 
                 status: 'pending' // pending until signup
             });
 
+            // NON-BLOCKING: Send the premium registration email
+            try {
+                const htmlEmail = rewardClaimedEmail({ isGuest: true, rewardType: matchedReward, email: email.toLowerCase() });
+                fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: email.toLowerCase(),
+                        subject: "🏷️ Votre récompense ESTT vous attend !",
+                        html: htmlEmail
+                    })
+                }); 
+            } catch (emailErr) {
+                console.error("Non-blocking email error:", emailErr);
+            }
 
             setStep(3);
         } catch (err) {
