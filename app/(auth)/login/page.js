@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useDialog } from '@/context/DialogContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +19,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function LoginPage() {
     const router = useRouter();
     const { signIn, signInWithGoogle } = useAuth();
+    const { showSuccess } = useDialog();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState('');
@@ -30,14 +32,64 @@ export default function LoginPage() {
         return email.toLowerCase().endsWith('@etu.uae.ac.ma');
     };
 
+    const checkAndApplyReward = async (currentUser) => {
+        if (!currentUser) return false;
+        try {
+            const { db, ref, get, update } = await import('@/lib/firebase');
+            const encodedEmail = currentUser.email.toLowerCase().replace(/\./g, ',');
+            const claimSnap = await get(ref(db, `qrClaims/${encodedEmail}`));
+            
+            if (claimSnap.exists()) {
+                const claim = claimSnap.val();
+                if (claim.status === 'pending' && claim.reward) {
+                    const rewardStr = claim.reward;
+                    let days = 30;
+                    if (rewardStr.includes('month')) {
+                        days = (parseInt(rewardStr.split('_')[1]) || 1) * 30;
+                    } else if (rewardStr.includes('day')) {
+                        days = parseInt(rewardStr.split('_')[1]) || 30;
+                    }
+                    const expiresAt = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+                    await update(ref(db, `users/${currentUser.uid}`), {
+                        subscription: {
+                            type: rewardStr,
+                            expiresAt: expiresAt
+                        }
+                    });
+
+                    await update(ref(db, `qrClaims/${encodedEmail}`), {
+                        status: 'applied',
+                        appliedAt: Date.now(),
+                        appliedToUid: currentUser.uid
+                    });
+                    
+                    const formatReward = (r) => {
+                        if (r.includes('month')) return `ESTTPlus+ (${r.split('_')[1].replace('month', ' Mois')})`;
+                        if (r.includes('day')) return `ESTTPlus+ (${r.split('_')[1].replace('day', ' Jours')})`;
+                        return 'ESTTPlus+';
+                    };
+
+                    showSuccess(`Votre récompense réservée ${formatReward(rewardStr)} a été appliquée à votre compte !`, { title: 'Récompense Activée !' });
+                    return true;
+                }
+            }
+        } catch (err) {
+            console.error("Failed to apply QR reward on login:", err);
+        }
+        return false;
+    };
+
     const handleGoogleSignIn = async () => {
         setMessage('');
         setGoogleLoading(true);
 
         try {
             await signInWithGoogle();
+            const { auth } = await import('@/lib/firebase');
             setMessage('Connexion réussie avec Google.');
-            setTimeout(() => router.push('/'), 1000);
+            const hasReward = await checkAndApplyReward(auth.currentUser);
+            setTimeout(() => router.push('/'), hasReward ? 3500 : 1000);
         } catch (error) {
             console.error(error);
             setMessage(error.message || 'Erreur lors de la connexion avec Google.');
@@ -117,8 +169,10 @@ export default function LoginPage() {
 
         try {
             await signIn(email, password);
+            const { auth } = await import('@/lib/firebase');
             setMessage('Connexion réussie.');
-            setTimeout(() => router.push('/'), 1000);
+            const hasReward = await checkAndApplyReward(auth.currentUser);
+            setTimeout(() => router.push('/'), hasReward ? 3500 : 1000);
         } catch (error) {
             console.error(error);
             setMessage('Identifiants invalides ou erreur de connexion.');

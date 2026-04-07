@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useDialog } from '@/context/DialogContext';
 import { db as staticDb } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function SignupPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { showSuccess } = useDialog();
 
     const { signUp, sendVerification } = useAuth();
     const [formData, setFormData] = useState({
@@ -185,6 +187,14 @@ export default function SignupPage() {
                             appliedAt: Date.now(),
                             appliedToUid: user.uid
                         });
+
+                        const formatReward = (r) => {
+                            if (r.includes('month')) return `ESTTPlus+ (${r.split('_')[1].replace('month', ' Mois')})`;
+                            if (r.includes('day')) return `ESTTPlus+ (${r.split('_')[1].replace('day', ' Jours')})`;
+                            return 'ESTTPlus+';
+                        };
+
+                        showSuccess(`Félicitations ! Votre récompense réservée ${formatReward(rewardStr)} a été liée à votre nouveau compte !`, { title: 'Récompense Activée !' });
                     }
                 }
             } catch (err) {
