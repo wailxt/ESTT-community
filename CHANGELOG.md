@@ -1,3 +1,10 @@
+# [1.14.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.13.5...v1.14.0) (2026-04-03)
+
+
+### Features
+
+* implement demo access to  club management tools ([a769394](https://github.com/abdelhakim-sahifa/ESTT-community/commit/a7693947f4c77a93ba4c35c0ceb3715fcaf40399))
+
 ## [1.13.5](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.13.4...v1.13.5) (2026-04-01)
 
 
