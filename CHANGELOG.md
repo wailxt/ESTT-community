@@ -1,3 +1,10 @@
+## [1.15.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.1...v1.15.2) (2026-04-07)
+
+
+### Bug Fixes
+
+* update email padding for phone screens ([9d40348](https://github.com/abdelhakim-sahifa/ESTT-community/commit/9d40348e173bc138fb94516437bff520a879dd60))
+
 ## [1.15.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.0...v1.15.1) (2026-04-07)
 
 # [1.15.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.14.0...v1.15.0) (2026-04-07)
