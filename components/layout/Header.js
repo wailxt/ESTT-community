@@ -59,11 +59,10 @@ export default function Header() {
         { href: '/events', label: 'Événements' },
        // { href: '/projects', label: 'Projects' },
         { href: '/contribute', label: 'Contribuer' },
-        { href: '/contributors', label: 'Contributeurs' },
+        { href: '/chat', label: 'Discussion' },
     ];
 
     if (user) {
-        navItems.push({ href: '/chat', label: 'Chat' });
         navItems.push({ href: '/profile', label: 'Profil' });
     }
 
