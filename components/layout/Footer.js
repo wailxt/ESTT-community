@@ -26,8 +26,8 @@ export default function Footer() {
         {
             title: "Communauté",
             links: [
-                { label: "Discussion", href: "/chat" },
                 { label: "Contribution", href: "/contribute" },
+                { label: "Contributeurs", href: "/contributors" },
                 { label: "Advertisement ", href: "/ads-portal" },
                 { label: "Remerciements", href: "/remerciements" },
             ]
