@@ -1,3 +1,17 @@
+## [1.16.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.16.0...v1.16.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* solve the project page show "page introuvable" ([f888467](https://github.com/abdelhakim-sahifa/ESTT-community/commit/f888467808468aec35e5e06ccc4d89e1e7bdeac8))
+
+# [1.16.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.3...v1.16.0) (2026-04-09)
+
+
+### Features
+
+* adding project hub feature ([ca84dcc](https://github.com/abdelhakim-sahifa/ESTT-community/commit/ca84dcccfda622fc8b48cdafe19cb6fd980a2d21))
+
 ## [1.15.3](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.2...v1.15.3) (2026-04-07)
 
 

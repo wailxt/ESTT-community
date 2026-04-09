@@ -49,11 +49,15 @@ export default function Header() {
 
     if (pathname === '/downloadAndroid' || pathname === '/docs') return null;
 
-    const isActive = (path) => pathname === path;
+    const isActive = (path) => {
+        if (path === '/') return pathname === '/';
+        return pathname === path || pathname.startsWith(`${path}/`);
+    };
 
     const navItems = [
         { href: '/', label: 'Accueil' },
         { href: '/events', label: 'Événements' },
+       // { href: '/projects', label: 'Projects' },
         { href: '/contribute', label: 'Contribuer' },
         { href: '/chat', label: 'Discussion' },
     ];

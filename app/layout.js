@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { AuthProvider } from '@/context/AuthContext';
 import { DialogProvider } from '@/context/DialogContext';
+import LocalDevServiceWorkerCleanup from '@/components/providers/LocalDevServiceWorkerCleanup';
 import { defaultMetadata } from '@/lib/metadata';
 
 const canela = localFont({
@@ -61,6 +62,7 @@ export default function RootLayout({ children }) {
             <body className={`font-sans ${canela.variable} antialiased`} suppressHydrationWarning={true}>
                 <DialogProvider>
                     <AuthProvider>
+                        <LocalDevServiceWorkerCleanup />
                         <Header />
                         {children}
                         <Footer />

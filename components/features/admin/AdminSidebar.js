@@ -13,7 +13,8 @@ import {
     Zap,
     Bug,
     Link,
-    Gift
+    Gift,
+    Trophy
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,13 @@ export default function AdminSidebar({ activeTab, setActiveTab, profile, stats =
                     onClick={() => setActiveTab('resources')}
                 >
                     <FileText className="w-4 h-4" /> Ressources
+                </Button>
+                <Button
+                    variant={activeTab === 'projects' ? 'default' : 'ghost'}
+                    className="justify-start gap-3 h-11"
+                    onClick={() => setActiveTab('projects')}
+                >
+                    <Trophy className="w-4 h-4" /> Projects
                 </Button>
                 <Button
                     variant={activeTab === 'fastContribute' ? 'default' : 'ghost'}

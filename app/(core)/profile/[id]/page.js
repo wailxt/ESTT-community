@@ -883,6 +883,24 @@ export default function PublicProfilePage() {
                     {/* Right Column */}
                     <div className="lg:col-span-2 space-y-8">
 
+                        <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="space-y-2">
+                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Portfolio projets</p>
+                                    <h2 className="text-2xl font-black text-slate-950">Challenges, builds et showcase</h2>
+                                    <p className="max-w-2xl text-sm leading-relaxed text-slate-600">
+                                        Un espace dedie pour voir les projets proposes, les implementations publiees et les creations partagees dans le showcase.
+                                    </p>
+                                </div>
+                                <Button asChild className="rounded-full">
+                                    <Link href={`/profile/${id}/projects`}>
+                                        <Trophy className="mr-2 h-4 w-4" />
+                                        Voir les projets
+                                    </Link>
+                                </Button>
+                            </div>
+                        </section>
+
                         {/* Contributions (horizontal scroll) */}
                         <section>
                             <div className="flex items-center justify-between mb-4">

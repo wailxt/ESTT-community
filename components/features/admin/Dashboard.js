@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import AdminSidebar from './AdminSidebar';
 import AdminOverview from './AdminOverview';
 import AdminResources from './AdminResources';
+import AdminProjects from './AdminProjects';
 import AdminUsers from './AdminUsers';
 import AdminReports from './AdminReports';
 import AdminClubRequests from './AdminClubRequests';
@@ -25,6 +26,7 @@ import AdminBugReports from './AdminBugReports';
 import AdminShortUrls from './AdminShortUrls';
 import AdminCommunication from './AdminCommunication';
 import AdminRewardCodes from './AdminRewardCodes';
+import { normalizeProject, normalizeShowcase, normalizeSubmission } from '@/lib/projects';
 
 
 
@@ -49,6 +51,9 @@ export default function AdminDashboard() {
     });
     const [adminAnnouncements, setAdminAnnouncements] = useState([]);
     const [bugReports, setBugReports] = useState([]);
+    const [projectBriefs, setProjectBriefs] = useState([]);
+    const [projectSubmissions, setProjectSubmissions] = useState([]);
+    const [projectShowcases, setProjectShowcases] = useState([]);
 
     // Admin Check
     useEffect(() => {
@@ -65,6 +70,9 @@ export default function AdminDashboard() {
         const resourcesRef = ref(db, 'resources');
         const usersRef = ref(db, 'users');
         const reportsRef = ref(db, 'reports');
+        const projectsRef = ref(db, 'projects');
+        const projectSubmissionsRef = ref(db, 'projectSubmissions');
+        const projectShowcasesRef = ref(db, 'projectShowcases');
 
         const unsubResources = onValue(resourcesRef, (snapshot) => {
             const data = snapshot.val() || {};
@@ -100,6 +108,30 @@ export default function AdminDashboard() {
             const data = snapshot.val() || {};
             const list = Object.entries(data).map(([id, val]) => ({ id, ...val }));
             setReports(list);
+        });
+
+        const unsubProjects = onValue(projectsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const list = Object.entries(data)
+                .map(([id, val]) => normalizeProject(id, val))
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            setProjectBriefs(list);
+        });
+
+        const unsubProjectSubmissions = onValue(projectSubmissionsRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const list = Object.entries(data)
+                .map(([id, val]) => normalizeSubmission(id, val))
+                .sort((a, b) => ((b.votesCount || 0) - (a.votesCount || 0)) || ((b.createdAt || 0) - (a.createdAt || 0)));
+            setProjectSubmissions(list);
+        });
+
+        const unsubProjectShowcases = onValue(projectShowcasesRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const list = Object.entries(data)
+                .map(([id, val]) => normalizeShowcase(id, val))
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            setProjectShowcases(list);
         });
 
         const bugReportsRef = ref(db, 'bugReports');
@@ -156,6 +188,9 @@ export default function AdminDashboard() {
             unsubResources();
             unsubUsers();
             unsubReports();
+            unsubProjects();
+            unsubProjectSubmissions();
+            unsubProjectShowcases();
             unsubClubRequests();
             unsubClubChangeRequests();
             unsubAdminAnnouncements();
@@ -205,6 +240,14 @@ export default function AdminDashboard() {
 
                     {activeTab === 'resources' && (
                         <AdminResources resources={resources} />
+                    )}
+
+                    {activeTab === 'projects' && (
+                        <AdminProjects
+                            projects={projectBriefs}
+                            submissions={projectSubmissions}
+                            showcases={projectShowcases}
+                        />
                     )}
 
                     {activeTab === 'users' && (
