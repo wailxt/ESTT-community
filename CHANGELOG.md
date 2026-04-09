@@ -1,3 +1,10 @@
+## [1.16.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.16.0...v1.16.1) (2026-04-09)
+
+
+### Bug Fixes
+
+* solve the project page show "page introuvable" ([f888467](https://github.com/abdelhakim-sahifa/ESTT-community/commit/f888467808468aec35e5e06ccc4d89e1e7bdeac8))
+
 # [1.16.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.3...v1.16.0) (2026-04-09)
 
 
