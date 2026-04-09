@@ -1,3 +1,10 @@
+## [1.15.3](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.2...v1.15.3) (2026-04-07)
+
+
+### Bug Fixes
+
+* auser will get claimed rewards after login , not only signup ([2039fda](https://github.com/abdelhakim-sahifa/ESTT-community/commit/2039fda9eb6624fd0edc791916d64ef9ef3aa700))
+
 ## [1.15.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.15.1...v1.15.2) (2026-04-07)
 
 

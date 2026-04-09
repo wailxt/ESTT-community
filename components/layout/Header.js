@@ -59,6 +59,7 @@ export default function Header() {
         { href: '/events', label: 'Événements' },
         { href: '/projects', label: 'Projects' },
         { href: '/contribute', label: 'Contribuer' },
+        { href: '/contributors', label: 'Contributeurs' },
     ];
 
     if (user) {
