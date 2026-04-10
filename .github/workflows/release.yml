@@ -22,7 +22,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: 🚀 Release with semantic-release
+      - name: � Generate GitHub App Token
+        id: github-app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: �🚀 Release with semantic-release
         uses: cycjimmy/semantic-release-action@v4
         with:
           semantic_version: 22
@@ -30,4 +37,4 @@ jobs:
             @semantic-release/changelog
             @semantic-release/git
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.github-app-token.outputs.token }}
