@@ -204,12 +204,6 @@ export default function Home() {
         fetchData();
     }, [firebaseDb]);
 
-
-    // Simplified Search Redirect
-    const handleSearchClick = () => {
-        router.push('/search');
-    };
-
     // Carousel Autoplay
     useEffect(() => {
         if (announcements.length <= 1) return;
@@ -247,7 +241,7 @@ export default function Home() {
                 "sameAs": []
             }} />
 
-            <Hero stats={stats} handleSearchClick={handleSearchClick} />
+            <Hero stats={stats} />
 
             <AnnouncementCarousel
                 announcements={announcements}

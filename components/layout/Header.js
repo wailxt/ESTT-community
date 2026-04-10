@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Bell, LogOut, User as UserIcon } from 'lucide-react';
+import { Menu, X, Bell, LogOut, User as UserIcon, Search } from 'lucide-react';
 import { db, ref, onValue } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -99,6 +99,10 @@ export default function Header() {
                 </nav>
 
                 <div className="flex items-center gap-4">
+                    <Link href="/search" className="p-2 text-muted-foreground hover:text-primary transition-colors hidden md:flex">
+                        <Search className="h-5 w-5" />
+                    </Link>
+                    
                     <div className="hidden md:flex items-center gap-4">
                         {!user ? (
                             <>
@@ -113,7 +117,7 @@ export default function Header() {
                             <>
                                 <span className="text-sm font-medium text-muted-foreground hidden lg:flex items-center gap-2">
                                     {profile?.firstName ? `Salut, ${profile.firstName}` : user.email}
-                                    {profile?.startYear && (new Date().getFullYear() - parseInt(profile.startYear) >= 1) && Object.keys(profile?.contributions || {}).length > 5 && (
+                                    {profile?.role === 'admin' && (
                                         <Badge variant="secondary" className="bg-yellow-400 text-white border-none text-[8px] px-1 animate-pulse">
                                             MENTOR
                                         </Badge>
@@ -143,6 +147,11 @@ export default function Header() {
                             )}
                         </Link>
                     )}
+
+                    {/* Mobile Search Button */}
+                    <Link href="/search" className="p-2 text-muted-foreground hover:text-primary transition-colors md:hidden">
+                        <Search className="h-5 w-5" />
+                    </Link>
 
                     {/* Mobile Menu Toggle via Sheet */}
                     <Sheet open={open} onOpenChange={setOpen}>

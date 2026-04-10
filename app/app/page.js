@@ -200,7 +200,7 @@ export default function AppHome() {
             }} />
 
             <div className="mobile-app-wrapper">
-                <Hero stats={stats} handleSearchClick={handleSearchClick} />
+                <Hero stats={stats} />
 
                 <AnnouncementCarousel
                     announcements={announcements}
