@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.0...v1.18.1) (2026-04-11)
+
+
+### Bug Fixes
+
+* fix the Structure and mebers profile in the club ([542156c](https://github.com/abdelhakim-sahifa/ESTT-community/commit/542156c5cb51961eb7ba790398ebf225a2feb50e))
+
 # [1.18.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.17.0...v1.18.0) (2026-04-11)
 
 
