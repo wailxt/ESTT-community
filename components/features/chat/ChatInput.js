@@ -34,10 +34,10 @@ export default function ChatInput({ onSendMessage, disabled }) {
                     type="submit"
                     disabled={disabled || !message.trim()}
                     className={cn(
-                        "absolute right-2.5 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full flex items-center justify-center transition-all",
+                        "absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center transition-all",
                         message.trim() && !disabled 
-                            ? "bg-primary text-white shadow-lg shadow-primary/20 scale-100" 
-                            : "bg-slate-200 text-slate-400 scale-95"
+                            ? "bg-primary text-white hover:bg-primary/90" 
+                            : "bg-slate-100 text-slate-300"
                     )}
                 >
                     <ArrowUp className="w-5 h-5" />
