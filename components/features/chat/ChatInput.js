@@ -1,15 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default function ChatInput({ onSendMessage, disabled }) {
+export default function ChatInput({ onSendMessage, onTypingChange, disabled }) {
     const [message, setMessage] = useState('');
+    const typingTimeoutRef = useRef(null);
+    const isTypingRef = useRef(false);
+
+    // Typing detection logic
+    useEffect(() => {
+        if (!message.trim() || disabled) {
+            if (isTypingRef.current) {
+                isTypingRef.current = false;
+                onTypingChange?.(false);
+            }
+            return;
+        }
+
+        // If not already typing, signal start
+        if (!isTypingRef.current) {
+            isTypingRef.current = true;
+            onTypingChange?.(true);
+        }
+
+        // Reset the "stop typing" timeout
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        
+        typingTimeoutRef.current = setTimeout(() => {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+        }, 2000);
+
+        return () => {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        };
+    }, [message, onTypingChange, disabled]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (message.trim() && !disabled) {
             onSendMessage(message.trim());
             setMessage('');
+            
+            // Immediately stop typing
+            if (isTypingRef.current) {
+                isTypingRef.current = false;
+                onTypingChange?.(false);
+                if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            }
         }
     };
 

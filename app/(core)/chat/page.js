@@ -28,7 +28,8 @@ export default function DiscussionPage() {
     const [profiles, setProfiles] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [replyingTo, setReplyingTo] = useState(null); // { id, text, userId, userName }
+    const [replyingTo, setReplyingTo] = useState(null);
+    const [typingUsers, setTypingUsers] = useState({});
     const messagesEndRef = useRef(null);
     const profilesListeners = useRef({});
 
@@ -122,8 +123,14 @@ export default function DiscussionPage() {
             scrollToBottom();
         });
 
+        const typingRef = ref(db, `discussions/${roomId}/typing`);
+        const unsubscribeTyping = onValue(typingRef, (snapshot) => {
+            setTypingUsers(snapshot.val() || {});
+        });
+
         return () => {
             unsubscribe();
+            unsubscribeTyping();
         };
     }, [user, authLoading, roomId]);
 
@@ -190,6 +197,17 @@ export default function DiscussionPage() {
             });
         } catch (error) {
             console.error("Error deleting message:", error);
+        }
+    };
+
+    const handleTypingChange = (isTyping) => {
+        if (!user || !roomId) return;
+        const typingRef = ref(db, `discussions/${roomId}/typing/${user.uid}`);
+        set(typingRef, isTyping || null);
+
+        // Ensure cleanup on disconnect
+        if (isTyping) {
+            onDisconnect(typingRef).remove();
         }
     };
 
@@ -438,6 +456,33 @@ export default function DiscussionPage() {
             {/* Input Area */}
             <div className="bg-white border-t border-slate-100 pb-2 md:pb-6 pt-4 px-6 md:px-12 shrink-0">
                 <div className="max-w-4xl mx-auto w-full">
+                    {/* Typing Indicator */}
+                    {(() => {
+                        const typingList = Object.entries(typingUsers)
+                            .filter(([uid, typing]) => typing && uid !== user.uid)
+                            .map(([uid]) => profiles[uid]?.firstName || 'Quelqu\'un');
+
+                        if (typingList.length === 0) return null;
+
+                        let text = "";
+                        if (typingList.length === 1) text = `${typingList[0]} est en train d'écrire`;
+                        else if (typingList.length === 2) text = `${typingList[0]} et ${typingList[1]} écrivent`;
+                        else text = `${typingList[0]} et ${typingList.length - 1} autres écrivent`;
+
+                        return (
+                            <div className="flex items-center gap-2 mb-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                                <span className="text-[11px] font-medium text-slate-400 flex items-center gap-1.5">
+                                    <span className="flex gap-0.5">
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 animate-bounce" />
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:0.2s]" />
+                                        <span className="w-1 h-1 rounded-full bg-slate-300 animate-bounce [animation-delay:0.4s]" />
+                                    </span>
+                                    {text}
+                                </span>
+                            </div>
+                        );
+                    })()}
+
                     {/* Reply Preview */}
                     {replyingTo && (
                         <div className="mb-3 p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between animate-in slide-in-from-bottom-2 duration-200">
@@ -460,7 +505,11 @@ export default function DiscussionPage() {
                             </button>
                         </div>
                     )}
-                    <ChatInput onSendMessage={handleSendMessage} disabled={loading} />
+                    <ChatInput
+                        onSendMessage={handleSendMessage}
+                        onTypingChange={handleTypingChange}
+                        disabled={loading}
+                    />
                 </div>
             </div>
         </main>
