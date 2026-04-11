@@ -509,11 +509,11 @@ export default function PublicProfilePage() {
                                     {profile.firstName} {profile.lastName}
                                     {profile.verifiedEmail && (
                                         <div className="group relative flex items-center">
-                                            <span className="material-symbols-outlined text-emerald-500 select-none" style={{ fontVariationSettings: "'FILL' 1", fontSize: '18px' }}>
+                                            <span className={`material-symbols-outlined select-none ${profile.role === 'admin' ? 'text-yellow-500' : 'text-emerald-500'}`} style={{ fontVariationSettings: "'FILL' 1", fontSize: '18px' }}>
                                                 verified
                                             </span>
                                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
-                                                Email académique vérifié
+                                                {profile.role === 'admin' ? 'Modérateur Vérifié' : 'Email académique vérifié'}
                                             </div>
                                         </div>
                                     )}
@@ -815,14 +815,18 @@ export default function PublicProfilePage() {
                                 )}
 
                                 {profile.verifiedEmail && (
-                                    <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
+                                    <div className={`p-4 border rounded-xl ${profile.role === 'admin' ? 'bg-yellow-50 border-yellow-100' : 'bg-emerald-50 border-emerald-100'}`}>
                                         <div className="flex items-center gap-3">
-                                            <span className="material-symbols-outlined text-emerald-500 select-none" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                            <span className={`material-symbols-outlined select-none ${profile.role === 'admin' ? 'text-yellow-500' : 'text-emerald-500'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
                                                 verified
                                             </span>
                                             <div className="space-y-0.5">
-                                                <p className="text-sm font-bold text-emerald-900">Profil Vérifié</p>
-                                                <p className="text-[10px] text-emerald-700">Votre identité académique est confirmée.</p>
+                                                <p className={`text-sm font-bold ${profile.role === 'admin' ? 'text-yellow-900' : 'text-emerald-900'}`}>
+                                                    {profile.role === 'admin' ? 'Modérateur Vérifié' : 'Profil Vérifié'}
+                                                </p>
+                                                <p className={`text-[10px] ${profile.role === 'admin' ? 'text-yellow-700' : 'text-emerald-700'}`}>
+                                                    {profile.role === 'admin' ? "Vous avez le rôle d'administrateur sur la plateforme." : 'Votre identité académique est confirmée.'}
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
