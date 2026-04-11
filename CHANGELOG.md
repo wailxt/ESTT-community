@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.17.0...v1.18.0) (2026-04-11)
+
+
+### Features
+
+* implement modern chat functionality ([b87e9ca](https://github.com/abdelhakim-sahifa/ESTT-community/commit/b87e9caec5a52bdd871a76912a157bef57eb4110))
+
 # [1.17.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.16.5...v1.17.0) (2026-04-11)
 
 
