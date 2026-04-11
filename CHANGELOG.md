@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.16.5...v1.17.0) (2026-04-11)
+
+
+### Features
+
+* add missing fonctionalities in the projects feature and fix bugs. ([2f4560e](https://github.com/abdelhakim-sahifa/ESTT-community/commit/2f4560ea3454a51f2cb39e90969e0d449185c5eb))
+
 ## [1.16.5](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.16.4...v1.16.5) (2026-04-10)
 
 ## [1.16.4](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.16.3...v1.16.4) (2026-04-10)
