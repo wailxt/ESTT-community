@@ -4,10 +4,15 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { db, ref, get, query, orderByChild, equalTo, runTransaction, set } from '@/lib/firebase';
+import { db, ref, get, query, orderByChild, equalTo } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 import ProjectSubmissionCard from '@/components/features/projects/ProjectSubmissionCard';
 import {
     formatProjectDate,
@@ -22,7 +27,8 @@ import {
     normalizeSubmission,
     sortByNewest,
 } from '@/lib/projects';
-import { AlertCircle, ArrowLeft, CalendarDays, CheckCircle2, Loader2, Trophy } from 'lucide-react';
+import { ChevronDown, AlertCircle, ArrowLeft, CalendarDays, CheckCircle2, Loader2, RotateCw, Trophy } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const sortSubmissions = (items) =>
     [...items].sort((first, second) => (second.votesCount - first.votesCount) || sortByNewest(first, second));
@@ -37,49 +43,44 @@ export default function ProjectDetailPage() {
     const [submissions, setSubmissions] = useState([]);
     const [currentVote, setCurrentVote] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [votingId, setVotingId] = useState('');
-    const [message, setMessage] = useState(null);
     const [error, setError] = useState(null); // { type: 'notFound' | 'loadError', message: string }
     const [refreshingSubmissions, setRefreshingSubmissions] = useState(false);
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
     const refreshSubmissions = async () => {
         if (!db || !projectId) return;
         setRefreshingSubmissions(true);
 
+        let submissionsList = [];
+
         try {
             const submissionsSnap = await get(
                 query(ref(db, 'projectSubmissions'), orderByChild('projectId'), equalTo(projectId))
             );
-
-            let submissionsList = [];
-
             if (submissionsSnap.exists()) {
                 submissionsList = Object.entries(submissionsSnap.val())
                     .map(([id, item]) => normalizeSubmission(id, item))
                     .filter((item) => item.status === 'approved');
             }
-
-            // If query returned nothing, try fetching all submissions as fallback
-            if (submissionsList.length === 0) {
-                console.warn('Query returned no submissions, trying fallback method...');
-                try {
-                    const allSubmissionsSnap = await get(ref(db, 'projectSubmissions'));
-                    if (allSubmissionsSnap.exists()) {
-                        submissionsList = Object.entries(allSubmissionsSnap.val())
-                            .map(([id, item]) => normalizeSubmission(id, item))
-                            .filter((item) => item.projectId === projectId && item.status === 'approved');
-                    }
-                } catch (fallbackError) {
-                    console.warn('Fallback method also failed:', fallbackError);
-                }
-            }
-
-            setSubmissions(sortSubmissions(submissionsList));
-        } catch (error) {
-            console.error('Error refreshing submissions:', error);
-        } finally {
-            setRefreshingSubmissions(false);
+        } catch (queryError) {
+            console.warn('Submissions indexed query failed, trying fallback:', queryError);
         }
+
+        if (submissionsList.length === 0) {
+            try {
+                const allSubmissionsSnap = await get(ref(db, 'projectSubmissions'));
+                if (allSubmissionsSnap.exists()) {
+                    submissionsList = Object.entries(allSubmissionsSnap.val())
+                        .map(([id, item]) => normalizeSubmission(id, item))
+                        .filter((item) => item.projectId === projectId && item.status === 'approved');
+                }
+            } catch (fallbackError) {
+                console.warn('Submissions fallback also failed:', fallbackError);
+            }
+        }
+
+        setSubmissions(sortSubmissions(submissionsList));
+        setRefreshingSubmissions(false);
     };
 
     useEffect(() => {
@@ -127,22 +128,23 @@ export default function ProjectDetailPage() {
                 return;
             }
 
-            try {
-                const submissionsSnap = await get(
-                    query(ref(db, 'projectSubmissions'), orderByChild('projectId'), equalTo(projectId))
-                );
-
+            {
                 let submissionsList = [];
-                
-                if (submissionsSnap.exists()) {
-                    submissionsList = Object.entries(submissionsSnap.val())
-                        .map(([id, item]) => normalizeSubmission(id, item))
-                        .filter((item) => item.status === 'approved');
+
+                try {
+                    const submissionsSnap = await get(
+                        query(ref(db, 'projectSubmissions'), orderByChild('projectId'), equalTo(projectId))
+                    );
+                    if (submissionsSnap.exists()) {
+                        submissionsList = Object.entries(submissionsSnap.val())
+                            .map(([id, item]) => normalizeSubmission(id, item))
+                            .filter((item) => item.status === 'approved');
+                    }
+                } catch (queryError) {
+                    console.warn('Submissions indexed query failed, trying fallback:', queryError);
                 }
-                
-                // If query returned nothing, try fetching all submissions as fallback
+
                 if (submissionsList.length === 0) {
-                    console.warn('Query returned no submissions, trying fallback method...');
                     try {
                         const allSubmissionsSnap = await get(ref(db, 'projectSubmissions'));
                         if (allSubmissionsSnap.exists()) {
@@ -151,14 +153,11 @@ export default function ProjectDetailPage() {
                                 .filter((item) => item.projectId === projectId && item.status === 'approved');
                         }
                     } catch (fallbackError) {
-                        console.warn('Fallback method also failed:', fallbackError);
+                        console.warn('Submissions fallback also failed:', fallbackError);
                     }
                 }
 
                 setSubmissions(sortSubmissions(submissionsList));
-            } catch (error) {
-                console.error('Error loading project submissions:', error);
-                setSubmissions([]);
             }
 
             if (user) {
@@ -182,100 +181,6 @@ export default function ProjectDetailPage() {
 
     const runtimeStatus = useMemo(() => getProjectRuntimeStatus(project), [project]);
     const leaderSubmission = submissions[0] || null;
-
-    const handleVote = async (submission) => {
-        if (!user) {
-            router.push('/login');
-            return;
-        }
-
-        if (!project || runtimeStatus !== 'open') {
-            setMessage({
-                type: 'error',
-                text: 'Le vote est ferme pour ce challenge.',
-            });
-            return;
-        }
-
-        if (submission.authorId === user.uid) {
-            setMessage({
-                type: 'error',
-                text: 'Tu ne peux pas voter pour ta propre implementation.',
-            });
-            return;
-        }
-
-        setVotingId(submission.id);
-        setMessage(null);
-
-        try {
-            const voteRef = ref(db, `projectVotes/${projectId}/${user.uid}`);
-            const existingVoteSnap = await get(voteRef);
-            const existingVote = existingVoteSnap.exists() ? existingVoteSnap.val() : null;
-
-            if (existingVote?.submissionId === submission.id) {
-                setMessage({
-                    type: 'success',
-                    text: 'Ton vote est deja place sur cette implementation.',
-                });
-                return;
-            }
-
-            if (existingVote?.submissionId) {
-                await runTransaction(
-                    ref(db, `projectSubmissions/${existingVote.submissionId}/votesCount`),
-                    (currentValue) => Math.max(0, Number(currentValue || 0) - 1)
-                );
-            }
-
-            await runTransaction(
-                ref(db, `projectSubmissions/${submission.id}/votesCount`),
-                (currentValue) => Number(currentValue || 0) + 1
-            );
-
-            await set(voteRef, {
-                userId: user.uid,
-                projectId,
-                submissionId: submission.id,
-                createdAt: existingVote?.createdAt || Date.now(),
-                updatedAt: Date.now(),
-            });
-
-            setCurrentVote({
-                submissionId: submission.id,
-                userId: user.uid,
-            });
-
-            setSubmissions((current) => {
-                const next = current.map((item) => {
-                    if (item.id === submission.id) {
-                        return { ...item, votesCount: item.votesCount + 1 };
-                    }
-
-                    if (existingVote?.submissionId && item.id === existingVote.submissionId) {
-                        return { ...item, votesCount: Math.max(0, item.votesCount - 1) };
-                    }
-
-                    return item;
-                });
-
-                return sortSubmissions(next);
-            });
-
-            setMessage({
-                type: 'success',
-                text: 'Ton vote a bien ete enregistre.',
-            });
-        } catch (error) {
-            console.error('Error voting for submission:', error);
-            setMessage({
-                type: 'error',
-                text: "Impossible d'enregistrer ton vote pour l'instant.",
-            });
-        } finally {
-            setVotingId('');
-        }
-    };
 
     if (loading) {
         return (
@@ -310,7 +215,7 @@ export default function ProjectDetailPage() {
                             <AlertCircle className="h-6 w-6 text-amber-600" />
                         </div>
                         <h1 className="mt-4 text-3xl font-black text-slate-950">Erreur de chargement</h1>
-                            <p className="mt-3 text-sm text-slate-600">{error.message}</p>
+                        <p className="mt-3 text-sm text-slate-600">{error.message}</p>
                         <div className="mt-6 flex flex-wrap justify-center gap-3">
                             <Button className="rounded-full" onClick={() => window.location.reload()}>
                                 Reessayer
@@ -342,114 +247,146 @@ export default function ProjectDetailPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[linear-gradient(180deg,_#0f172a_0%,_#172554_24%,_#eff6ff_24%,_#ffffff_100%)]">
-            <section className="container px-4 py-12 md:px-6 md:py-16">
-                <Button asChild variant="ghost" className="mb-6 rounded-full text-white hover:bg-white/10 hover:text-white">
+        <main className="min-h-screen bg-slate-50/50">
+            <section className="container px-4 py-8 md:px-6 md:py-12">
+                <Button asChild variant="ghost" className="mb-6 rounded-full text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                     <Link href="/projects">
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Retour aux projets
                     </Link>
                 </Button>
 
-                <div className="overflow-hidden rounded-2xl border border-white/15 bg-white shadow-2xl shadow-slate-900/15">
-                    <div className="grid gap-0 lg:grid-cols-[1.15fr_0.85fr]">
-                        <div className="space-y-6 bg-slate-950 px-6 py-8 text-white md:px-8 md:py-10">
+                <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+                    <div className="grid gap-0 lg:grid-cols-[1.2fr_0.8fr]">
+                        <div className="space-y-8 bg-white px-6 py-8 text-slate-900 md:px-10 md:py-12">
                             <div className="flex flex-wrap gap-2">
-                                <Badge className={getProjectStatusClasses(runtimeStatus)}>
+                                <Badge className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", getProjectStatusClasses(runtimeStatus))}>
                                     {getProjectStatusLabel(runtimeStatus)}
                                 </Badge>
-                                <Badge className={getDifficultyClasses(project.difficulty)}>
+                                <Badge variant="secondary" className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", getDifficultyClasses(project.difficulty))}>
                                     {getProjectDifficultyLabel(project.difficulty)}
                                 </Badge>
-                                <Badge className="border-white/15 bg-white/10 text-white">
+                                <Badge variant="outline" className="rounded-full border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                                     {getProjectCategoryLabel(project.category)}
                                 </Badge>
                             </div>
 
-                            <div className="space-y-3">
-                                <h1 className="text-4xl font-black tracking-tight md:text-5xl">{project.title}</h1>
-                                <p className="max-w-3xl text-base leading-relaxed text-white/80">
-                                    {project.summary || project.description}
-                                </p>
+                            <div className="space-y-4">
+                                <h1 className="text-4xl font-black tracking-tight text-slate-900 md:text-6xl">{project.title}</h1>
+                                <div className="max-w-3xl">
+                                    <div className={cn(
+                                        "prose prose-slate max-w-none text-lg leading-relaxed text-slate-600",
+                                        !isDescriptionExpanded && "line-clamp-4 md:line-clamp-none"
+                                    )}>
+                                        {project.description || project.summary || 'Aucune description detaillee pour le moment.'}
+                                    </div>
+
+                                    {(project.description?.length > 400 || project.summary?.length > 400) && (
+                                        <button
+                                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                                            className="mt-2 flex items-center gap-1 text-sm font-bold text-primary hover:underline"
+                                        >
+                                            {isDescriptionExpanded ? "Voir moins" : "Continuer la lecture"}
+                                            <ChevronDown className={cn("h-4 w-4 transition-transform", isDescriptionExpanded && "rotate-180")} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-3">
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs uppercase tracking-[0.2em] text-white/50">Auteur</p>
-                                    <p className="mt-2 text-sm font-bold">{project.authorName}</p>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-colors hover:bg-slate-50">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Auteur</p>
+                                    <p className="mt-2 text-base font-black text-slate-900">{project.authorName}</p>
                                 </div>
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs uppercase tracking-[0.2em] text-white/50">Soumissions</p>
-                                    <p className="mt-2 text-sm font-bold">{submissions.length}</p>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-colors hover:bg-slate-50">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Soumissions</p>
+                                    <p className="mt-2 text-base font-black text-slate-900">{submissions.length}</p>
                                 </div>
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                                    <p className="text-xs uppercase tracking-[0.2em] text-white/50">Vote</p>
-                                    <p className="mt-2 text-sm font-bold">{getProjectVoteModeLabel(project.voteMode)}</p>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-5 transition-colors hover:bg-slate-50">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Vote</p>
+                                    <p className="mt-2 text-base font-black text-slate-900">{getProjectVoteModeLabel(project.voteMode)}</p>
                                 </div>
                             </div>
 
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 pt-2">
                                 {project.tags.map((tag) => (
                                     <span
                                         key={tag}
-                                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white/80"
+                                        className="rounded-full border border-slate-100 bg-slate-50 px-4 py-1.5 text-xs font-bold text-slate-500 transition-colors hover:bg-slate-100"
                                     >
-                                        {tag}
+                                        #{tag}
                                     </span>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="space-y-5 bg-white px-6 py-8 md:px-8 md:py-10">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-                                <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                                    <CalendarDays className="h-4 w-4" />
+                        <div className="flex flex-col gap-6 bg-slate-50/30 px-6 py-8 md:px-10 md:py-12">
+                            {project.coverImage && (
+                                <div className="group relative aspect-video w-full overflow-hidden rounded-2xl border border-slate-200 shadow-inner">
+                                    <img
+                                        src={project.coverImage}
+                                        alt={project.title}
+                                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 to-transparent" />
+                                </div>
+                            )}
+
+                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                                <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                                    <CalendarDays className="h-3.5 w-3.5" />
                                     Calendrier
                                 </p>
-                                <div className="mt-4 space-y-3 text-sm text-slate-600">
-                                    <p>
-                                        <span className="font-semibold text-slate-900">Cree le:</span> {formatProjectDate(project.createdAt)}
-                                    </p>
-                                    <p>
-                                        <span className="font-semibold text-slate-900">Deadline:</span>{' '}
-                                        {project.deadline ? formatProjectDate(project.deadline) : 'Aucune date limite'}
-                                    </p>
+                                <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-1">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cree le</span>
+                                        <span className="font-bold text-slate-900">{formatProjectDate(project.createdAt)}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Deadline</span>
+                                        <span className="font-bold text-slate-900">
+                                            {project.deadline ? formatProjectDate(project.deadline) : 'Aucune date limite'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Action</p>
+                            <div className="rounded-2xl border border-primary/10 bg-primary/5 p-6 shadow-sm">
+                                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/60">Action</p>
                                 <p className="mt-3 text-sm leading-relaxed text-slate-600">
                                     Soumets ton build avec une demo, un repo GitHub et une explication claire. Les autres membres pourront ensuite voter.
                                 </p>
-                                <div className="mt-5 flex flex-wrap gap-3">
+                                <div className="mt-6 flex flex-col gap-3">
                                     {runtimeStatus === 'open' ? (
-                                        <Button asChild className="rounded-full">
+                                        <Button asChild className="w-full rounded-full">
                                             <Link href={`/projects/${project.id}/submit`}>
                                                 Soumettre une implementation
                                             </Link>
                                         </Button>
                                     ) : (
-                                        <Button className="rounded-full" disabled>
+                                        <Button className="w-full rounded-full" disabled>
                                             Soumissions fermees
                                         </Button>
                                     )}
-                                    <Button asChild variant="outline" className="rounded-full">
+                                    <Button asChild variant="outline" className="w-full rounded-full">
                                         <Link href="/projects/showcase/new">Publier un projet libre</Link>
                                     </Button>
                                 </div>
                             </div>
 
                             {leaderSubmission && (
-                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-                                    <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-amber-600">
-                                        <Trophy className="h-4 w-4" />
-                                        Leader actuel
-                                    </p>
-                                    <h2 className="mt-3 text-xl font-black text-slate-950">{leaderSubmission.title}</h2>
-                                    <p className="mt-1 text-sm text-slate-600">
-                                        {leaderSubmission.votesCount} vote{leaderSubmission.votesCount > 1 ? 's' : ''} pour {leaderSubmission.authorName}
-                                    </p>
+                                <div className="relative overflow-hidden rounded-2xl border border-amber-200 bg-amber-50 p-6">
+                                    <div className="relative z-10">
+                                        <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600">
+                                            <Trophy className="h-3.5 w-3.5" />
+                                            Leader actuel
+                                        </p>
+                                        <h2 className="mt-3 text-xl font-black text-slate-950">{leaderSubmission.title}</h2>
+                                        <p className="mt-1 text-sm text-slate-600">
+                                            {leaderSubmission.votesCount} vote{leaderSubmission.votesCount > 1 ? 's' : ''} • {leaderSubmission.authorName}
+                                        </p>
+                                    </div>
+                                    <Trophy className="absolute -bottom-4 -right-4 h-24 w-24 rotate-12 text-amber-200/50" />
                                 </div>
                             )}
                         </div>
@@ -457,48 +394,53 @@ export default function ProjectDetailPage() {
                 </div>
             </section>
 
-            <section className="container grid gap-8 px-4 pb-16 md:px-6 lg:grid-cols-[0.9fr_1.1fr]">
-                <div className="space-y-8">
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-2xl font-black text-slate-950">Description</h2>
-                        <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
-                            {project.description || project.summary || 'Aucune description detaillee pour le moment.'}
-                        </p>
-                    </div>
+            <section className="container px-4 pb-20 md:px-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md md:p-10">
+                    <Accordion type="multiple" className="w-full space-y-4">
+                        <AccordionItem value="requirements" className="border-none">
+                            <AccordionTrigger className="hover:no-underline py-4 flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/50 px-6 transition-colors hover:bg-slate-50 [&[data-state=open]]:bg-slate-50 [&[data-state=open]]:rounded-b-none">
+                                <h2 className="text-2xl font-black tracking-tight text-slate-900">Attendus</h2>
+                            </AccordionTrigger>
+                            <AccordionContent className="mt-0 border-x border-b border-slate-100 rounded-b-2xl bg-white px-8 pb-8 pt-6">
+                                {project.requirements.length > 0 ? (
+                                    <ul className="space-y-3">
+                                        {project.requirements.map((item) => (
+                                            <li key={item} className="group flex items-start gap-4 transition-colors">
+                                                <div className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                                                <span className="text-base font-medium text-slate-600 group-hover:text-slate-900 transition-colors leading-relaxed">{item}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-slate-500 italic">Aucun attendu detaille pour le moment.</p>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
 
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-2xl font-black text-slate-950">Attendus</h2>
-                        {project.requirements.length > 0 ? (
-                            <ul className="mt-4 space-y-3 text-sm text-slate-600">
-                                {project.requirements.map((item) => (
-                                    <li key={item} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-4 text-sm text-slate-500">Aucun attendu detaille pour le moment.</p>
-                        )}
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                        <h2 className="text-2xl font-black text-slate-950">Criteres d evaluation</h2>
-                        {project.evaluationCriteria.length > 0 ? (
-                            <ul className="mt-4 space-y-3 text-sm text-slate-600">
-                                {project.evaluationCriteria.map((item) => (
-                                    <li key={item} className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
-                                        {item}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mt-4 text-sm text-slate-500">Les criteres seront ajoutes par l'auteur du projet plus tard.</p>
-                        )}
-                    </div>
+                        <AccordionItem value="criteria" className="border-none">
+                            <AccordionTrigger className="hover:no-underline py-4 flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/50 px-6 transition-colors hover:bg-slate-50 [&[data-state=open]]:bg-slate-50 [&[data-state=open]]:rounded-b-none">
+                                <h2 className="text-2xl font-black tracking-tight text-slate-900">Criteres d'evaluation</h2>
+                            </AccordionTrigger>
+                            <AccordionContent className="mt-0 border-x border-b border-slate-100 rounded-b-2xl bg-white px-8 pb-8 pt-6">
+                                {project.evaluationCriteria.length > 0 ? (
+                                    <ul className="space-y-4">
+                                        {project.evaluationCriteria.map((item) => (
+                                            <li key={item} className="group flex items-start gap-4 transition-colors">
+                                                <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-emerald-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+                                                <span className="text-base font-medium text-slate-600 group-hover:text-slate-900 transition-colors leading-relaxed">{item}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-slate-500 italic">Les criteres seront ajoutes par l'auteur du projet plus tard.</p>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="mt-16 space-y-8">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                         <div>
                             <h2 className="text-3xl font-black text-slate-950">Implementations</h2>
                             <p className="mt-2 text-sm text-slate-500">
@@ -506,20 +448,15 @@ export default function ProjectDetailPage() {
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Button 
-                                variant="outline" 
-                                className="rounded-full"
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="rounded-full shrink-0"
                                 onClick={refreshSubmissions}
                                 disabled={refreshingSubmissions}
+                                title="Rafraichir les soumissions"
                             >
-                                {refreshingSubmissions ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Rafraichissement...
-                                    </>
-                                ) : (
-                                    'Rafraichir'
-                                )}
+                                <RotateCw className={cn("h-4 w-4", refreshingSubmissions && "animate-spin")} />
                             </Button>
                             <Button asChild variant="outline" className="rounded-full">
                                 <Link href={`/projects/${project.id}/submit`}>Ajouter une implementation</Link>
@@ -527,13 +464,6 @@ export default function ProjectDetailPage() {
                         </div>
                     </div>
 
-                    {message && (
-                        <Alert className={message.type === 'error' ? '' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}>
-                            {message.type === 'error' ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
-                            <AlertTitle>{message.type === 'error' ? 'Attention' : 'Vote enregistre'}</AlertTitle>
-                            <AlertDescription>{message.text}</AlertDescription>
-                        </Alert>
-                    )}
 
                     {submissions.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-slate-200 bg-white p-10 text-center">
@@ -543,14 +473,11 @@ export default function ProjectDetailPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className="grid gap-6">
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             {submissions.map((submission) => (
                                 <ProjectSubmissionCard
                                     key={submission.id}
                                     submission={submission}
-                                    onVote={handleVote}
-                                    voteDisabled={runtimeStatus !== 'open'}
-                                    isVoting={votingId === submission.id}
                                     currentVoteId={currentVote?.submissionId || ''}
                                     userId={user?.uid || ''}
                                 />

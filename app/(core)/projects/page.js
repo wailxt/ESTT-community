@@ -18,6 +18,7 @@ import {
     normalizeSubmission,
     sortByNewest,
 } from '@/lib/projects';
+import ProjectCarousel from '@/components/features/projects/ProjectCarousel';
 import { ArrowRight, Layers3, Loader2, Rocket, Sparkles, Trophy } from 'lucide-react';
 
 export default function ProjectsPage() {
@@ -88,108 +89,71 @@ export default function ProjectsPage() {
         return map;
     }, [submissions]);
 
-    const featuredProject = useMemo(() => projects.find((item) => item.featured) || projects[0] || null, [projects]);
+    // Gather top 5 projects for the carousel (featured first, then newest)
+    const carouselProjects = useMemo(() => projects.slice(0, 5), [projects]);
+    
     const topSubmissions = useMemo(() => submissions.slice(0, 6), [submissions]);
     const latestShowcases = useMemo(() => showcases.slice(0, 6), [showcases]);
 
     return (
         <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(251,191,36,0.16),_transparent_32%),linear-gradient(180deg,_#fff7ed_0%,_#ffffff_32%,_#f8fafc_100%)]">
             <section className="border-b border-orange-100/80">
-                <div className="container px-4 py-16 md:px-6 md:py-20">
-                    <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-                        <div className="space-y-6">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-orange-600 shadow-sm backdrop-blur">
-                                <Rocket className="h-4 w-4" />
-                                Projects hub
-                            </div>
+                <div className="container px-4 py-12 md:px-6 md:py-16">
+                    <div className="flex flex-col gap-12">
+                        {/* Header Section */}
+                        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
+                            <div className="space-y-6 max-w-3xl">
+                                <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/80 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-orange-600 shadow-sm backdrop-blur">
+                                    <Rocket className="h-4 w-4" />
+                                    Projects hub
+                                </div>
 
-                            <div className="space-y-4">
-                                <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
-                                    Trouver une idee, construire une solution, montrer ce que tu sais faire.
-                                </h1>
-                                <p className="max-w-2xl text-lg leading-relaxed text-slate-600">
-                                    Les etudiants peuvent proposer des briefs, publier leurs implementations et partager leurs projets finis dans un meme espace.
-                                </p>
-                            </div>
+                                <div className="space-y-5">
+                                    <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl md:text-6xl md:leading-[1.05]">
+                                        Trouver une idee, construire une solution, montrer ce que tu sais faire.
+                                    </h1>
+                                    <p className="text-lg leading-relaxed text-slate-600">
+                                        Les etudiants peuvent proposer des briefs, publier leurs implementations et partager leurs projets finis dans un meme espace.
+                                    </p>
+                                </div>
 
-                            <div className="flex flex-wrap gap-3">
-                                <Button asChild size="lg" className="rounded-full px-7">
-                                    <Link href="/projects/new">
-                                        Proposer un challenge
-                                        <ArrowRight className="ml-2 h-4 w-4" />
-                                    </Link>
-                                </Button>
-                                <Button asChild size="lg" variant="outline" className="rounded-full px-7">
-                                    <Link href="/projects/showcase/new">Publier ton projet</Link>
-                                </Button>
-                                {!user && (
-                                    <Button asChild size="lg" variant="ghost" className="rounded-full px-7">
-                                        <Link href="/login">Se connecter pour participer</Link>
+                                <div className="flex flex-wrap gap-4">
+                                    <Button asChild size="lg" className="rounded-full px-8 bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-100/50">
+                                        <Link href="/projects/new">
+                                            Proposer un challenge
+                                            <ArrowRight className="ml-2 h-4 w-4" />
+                                        </Link>
                                     </Button>
-                                )}
+                                    <Button asChild size="lg" variant="outline" className="rounded-full px-8 border-slate-200">
+                                        <Link href="/projects/showcase/new">Publier ton projet</Link>
+                                    </Button>
+                                </div>
                             </div>
 
-                            <div className="grid gap-4 sm:grid-cols-3">
-                                <div className="rounded-xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
-                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Challenges</p>
-                                    <p className="mt-3 text-3xl font-black text-slate-950">{projects.length}</p>
-                                    <p className="mt-1 text-sm text-slate-500">Briefs ouverts ou archives dans le hub.</p>
+                            <div className="grid grid-cols-3 gap-4 min-w-[300px] lg:min-w-[400px]">
+                                <div className="rounded-2xl border-2 border-white/70 bg-white/90 p-4 shadow-none backdrop-blur text-center">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Challenges</p>
+                                    <p className="mt-2 text-2xl font-black text-slate-950">{projects.length}</p>
                                 </div>
-                                <div className="rounded-xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
-                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Builders</p>
-                                    <p className="mt-3 text-3xl font-black text-slate-950">{countUniqueAuthors(submissions)}</p>
-                                    <p className="mt-1 text-sm text-slate-500">Etudiants qui ont deja livre une implementation.</p>
+                                <div className="rounded-2xl border-2 border-white/70 bg-white/90 p-4 shadow-none backdrop-blur text-center">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Builders</p>
+                                    <p className="mt-2 text-2xl font-black text-slate-950">{countUniqueAuthors(submissions)}</p>
                                 </div>
-                                <div className="rounded-xl border border-white/70 bg-white/90 p-5 shadow-sm backdrop-blur">
-                                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Showcase</p>
-                                    <p className="mt-3 text-3xl font-black text-slate-950">{showcases.length}</p>
-                                    <p className="mt-1 text-sm text-slate-500">Projets personnels partages avec la communaute.</p>
+                                <div className="rounded-2xl border-2 border-white/70 bg-white/90 p-4 shadow-none backdrop-blur text-center">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Showcase</p>
+                                    <p className="mt-2 text-2xl font-black text-slate-950">{showcases.length}</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-orange-100 bg-white/95 p-6 shadow-xl shadow-orange-100/60">
-                            {featuredProject ? (
-                                <div className="space-y-5">
-                                    <div className="inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-orange-600">
-                                        <Sparkles className="h-3.5 w-3.5" />
-                                        Challenge en vedette
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-400">
-                                            {getProjectCategoryLabel(featuredProject.category)}
-                                        </p>
-                                        <h2 className="text-3xl font-black text-slate-950">{featuredProject.title}</h2>
-                                        <p className="text-base leading-relaxed text-slate-600">
-                                            {featuredProject.summary || featuredProject.description}
-                                        </p>
-                                    </div>
-
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Pourquoi ce projet ?</p>
-                                        <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                                            <li>Publie plusieurs implementations et laisse la communaute voter.</li>
-                                            <li>Donne de la visibilite aux meilleurs builds sur les profils et dans le hub.</li>
-                                            <li>Permet aux clubs et etudiants de lancer des mini competitions.</li>
-                                        </ul>
-                                    </div>
-
-                                    <Button asChild className="w-full rounded-xl">
-                                        <Link href={`/projects/${featuredProject.id}`}>Ouvrir le challenge</Link>
-                                    </Button>
+                        {/* Carousel Section */}
+                        <div className="w-full">
+                            {loading ? (
+                                <div className="aspect-[16/9] md:aspect-[21/9] w-full rounded-3xl bg-slate-100 animate-pulse flex items-center justify-center">
+                                    <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
                                 </div>
                             ) : (
-                                <div className="space-y-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-                                    <p className="text-sm font-bold uppercase tracking-[0.2em] text-slate-400">Pret a lancer</p>
-                                    <h2 className="text-2xl font-black text-slate-950">Aucun projet pour le moment</h2>
-                                    <p className="text-sm text-slate-500">
-                                        Cree le premier challenge et commence a construire l espace projets de la communaute.
-                                    </p>
-                                    <Button asChild className="rounded-full">
-                                        <Link href="/projects/new">Creer le premier challenge</Link>
-                                    </Button>
-                                </div>
+                                <ProjectCarousel projects={carouselProjects} />
                             )}
                         </div>
                     </div>
