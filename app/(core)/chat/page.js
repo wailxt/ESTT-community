@@ -148,14 +148,16 @@ export default function DiscussionPage() {
         }, 100);
     };
 
-    const handleSendMessage = async (text) => {
-        if (!user) return;
+    const handleSendMessage = async (text, imageUrl = null, sharedResource = null) => {
+        if (!user || (!text?.trim() && !imageUrl && !sharedResource)) return;
 
         const messagesRef = ref(db, `discussions/${roomId}/messages`);
         const newMessageRef = push(messagesRef);
 
         const messageData = {
-            text,
+            text: text || "",
+            imageUrl,
+            sharedResource,
             userId: user.uid,
             timestamp: serverTimestamp(),
             ...(replyingTo && {
@@ -509,6 +511,11 @@ export default function DiscussionPage() {
                         onSendMessage={handleSendMessage}
                         onTypingChange={handleTypingChange}
                         disabled={loading}
+                        mentionableUsers={Object.entries(profiles).map(([id, p]) => ({
+                            id,
+                            name: `${p.firstName}_${p.lastName}`,
+                            profile: p
+                        }))}
                     />
                 </div>
             </div>

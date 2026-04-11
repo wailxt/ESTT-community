@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { BadgeCheck, ShieldCheck, Gem, User, SmilePlus, Trash2, MoreHorizontal, Pencil, AlertTriangle, X, Reply, Flag } from 'lucide-react';
+import { BadgeCheck, ShieldCheck, Gem, User, SmilePlus, Trash2, MoreHorizontal, Pencil, AlertTriangle, X, Reply, Flag, FileText, Video, Link as LinkIcon, ArrowRight, BookOpen } from 'lucide-react';
 
 const COMMON_EMOJIS = ['❤️', '😂', '👍', '🔥', '😮'];
 
@@ -11,7 +11,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
     const [showMenu, setShowMenu] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const { id, userId, text, timestamp, reactions, profile: messageProfile, isDeleted, replyTo } = message;
+    const { id, userId, text, timestamp, reactions, profile: messageProfile, isDeleted, replyTo, imageUrl, sharedResource } = message;
     const profile = externalProfile || messageProfile;
     const { firstName, lastName, photoUrl, verifiedEmail, role, subscription } = profile || {};
 
@@ -138,7 +138,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                             isDeleted 
                                 ? "bg-slate-50 text-slate-400 border-slate-100 italic px-4 py-2 md:px-6 md:py-3.5" 
                                 : isOwn 
-                                    ? "bg-blue-50 text-slate-800 border-blue-100/50" 
+                                    ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500 shadow-sm" 
                                     : "bg-slate-100 text-slate-800 border-slate-200/50",
                             isOwn && !isContinuation && "rounded-tr-none",
                             !isOwn && !isContinuation && "rounded-tl-none"
@@ -147,25 +147,144 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                             {replyTo && !isDeleted && (
                                 <button
                                     onClick={() => scrollToMessage(replyTo.id)}
-                                    className="w-full text-left bg-white/50 border-b border-slate-200/50 px-4 py-1.5 md:px-5 md:py-2.5 mb-1 group/reply hover:bg-white/80 transition-all block"
+                                    className={cn(
+                                        "w-full text-left border-b px-4 py-1.5 md:px-5 md:py-2.5 mb-1 group/reply transition-all block",
+                                        isOwn 
+                                            ? "bg-black/10 border-black/5 hover:bg-black/20 text-white" 
+                                            : "bg-white/50 border-slate-200/50 hover:bg-white/80"
+                                    )}
                                 >
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <div className="w-0.5 h-3 bg-blue-500 rounded-full" />
-                                        <span className="text-[10px] md:text-[11px] font-black uppercase tracking-wider text-blue-600">
+                                        <div className={cn(
+                                            "w-0.5 h-3 rounded-full",
+                                            isOwn ? "bg-white/50" : "bg-blue-500"
+                                        )} />
+                                        <span className={cn(
+                                            "text-[10px] md:text-[11px] font-black uppercase tracking-wider",
+                                            isOwn ? "text-blue-100" : "text-blue-600"
+                                        )}>
                                             {replyTo.userName}
                                         </span>
                                     </div>
-                                    <p className="text-[12px] md:text-[13px] text-slate-500 line-clamp-1 italic">
+                                    <p className={cn(
+                                        "text-[12px] md:text-[13px] line-clamp-1 italic",
+                                        isOwn ? "text-blue-50/70" : "text-slate-500"
+                                    )}>
                                         {replyTo.text || "Message supprimé"}
                                     </p>
                                 </button>
                             )}
                             
-                            <div className={cn(
-                                !isDeleted && "px-4 py-2 md:px-6 md:py-3.5"
-                            )}>
-                                {isDeleted ? "Ce message a été supprimé" : text}
-                            </div>
+                            {imageUrl && !isDeleted && (
+                                <div className={cn(
+                                    "relative overflow-hidden",
+                                    text ? "mb-1" : ""
+                                )}>
+                                    <Link 
+                                        href={imageUrl} 
+                                        target="_blank" 
+                                        className="block group/img relative"
+                                    >
+                                        <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors z-10 flex items-center justify-center">
+                                            <span className="opacity-0 group-hover/img:opacity-100 text-white text-[10px] font-bold uppercase tracking-wider bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all transform scale-90 group-hover/img:scale-100">
+                                                Voir en grand
+                                            </span>
+                                        </div>
+                                        <img
+                                            src={imageUrl}
+                                            alt="Chat attachment"
+                                            className="max-w-[240px] md:max-w-[400px] max-h-[300px] md:max-h-[450px] w-auto h-auto object-contain block mx-auto rounded-lg"
+                                        />
+                                    </Link>
+                                </div>
+                            )}
+                            
+                            {/* Shared Resource Card */}
+                            {sharedResource && (
+                                <div className={cn(
+                                    "p-1 md:p-1.5",
+                                    text ? "mb-1" : ""
+                                )}>
+                                    <Link 
+                                        href={`/resource/${sharedResource.id}`}
+                                        className="block w-full max-w-[260px] md:max-w-none group/resource bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-xl overflow-hidden hover:bg-white hover:border-primary/30 transition-all shadow-sm"
+                                    >
+                                        <div className="flex items-start gap-3 md:gap-4 p-3 md:p-5">
+                                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-slate-100/50 flex items-center justify-center text-slate-400 group-hover/resource:bg-primary/10 group-hover/resource:text-primary transition-colors shrink-0">
+                                                {sharedResource.type === 'pdf' ? <FileText className="w-5 h-5 md:w-6 md:h-6" /> :
+                                                 sharedResource.type === 'video' ? <Video className="w-5 h-5 md:w-6 md:h-6" /> :
+                                                 sharedResource.type === 'link' ? <LinkIcon className="w-5 h-5 md:w-6 md:h-6" /> :
+                                                 <BookOpen className="w-5 h-5 md:w-6 md:h-6" />}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[13px] md:text-base font-bold text-slate-900 group-hover/resource:text-primary transition-colors line-clamp-2 leading-tight md:leading-snug">
+                                                    {sharedResource.title}
+                                                </p>
+                                                <p className="text-[10px] md:text-xs text-slate-500 mt-1 md:mt-1.5 truncate">
+                                                    {sharedResource.module} • {sharedResource.professor || 'Professeur'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-50/50 border-t border-slate-100/50 px-3 md:px-5 py-2 md:py-2.5 flex items-center justify-between group-hover/resource:bg-primary/5 transition-colors">
+                                            <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">{sharedResource.type}</span>
+                                            <span className="text-[10px] md:text-xs font-bold text-primary flex items-center gap-1 group-hover/resource:underline">
+                                                Voir ressource <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                                            </span>
+                                        </div>
+                                    </Link>
+                                </div>
+                            )}
+
+                            {/* Text Content */}
+                            {(text || isDeleted) && (
+                                <div className={cn(
+                                    !isDeleted && (imageUrl || sharedResource ? "px-4 pb-3 pt-1 md:px-6 md:pb-4 md:pt-2" : "px-4 py-2 md:px-6 md:py-3.5")
+                                )}>
+                                    {isDeleted ? (
+                                        <span className="italic opacity-60">Ce message a été supprimé</span>
+                                    ) : (
+                                        (() => {
+                                            if (!text) return null;
+                                            // Unified regex for mentions and URLs
+                                            const parts = text.split(/((?:@\w+_\w+)|(?:https?:\/\/[^\s]+))/g);
+                                            return parts.map((part, index) => {
+                                                if (part.startsWith('@') && part.includes('_')) {
+                                                    return (
+                                                        <span 
+                                                            key={index} 
+                                                            className={cn(
+                                                                "font-bold px-1.5 py-0.5 rounded-md mx-0.5 inline-block transition-all",
+                                                                isOwn 
+                                                                    ? "bg-white/20 text-white shadow-sm ring-1 ring-white/10" 
+                                                                    : "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/5"
+                                                            )}
+                                                        >
+                                                            {part}
+                                                        </span>
+                                                    );
+                                                }
+                                                if (part.startsWith('http')) {
+                                                    return (
+                                                        <a 
+                                                            key={index}
+                                                            href={part}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className={cn(
+                                                                "font-bold underline decoration-2 underline-offset-2 hover:decoration-4 transition-all mx-0.5",
+                                                                isOwn ? "text-white" : "text-primary"
+                                                            )}
+                                                        >
+                                                            {part}
+                                                        </a>
+                                                    );
+                                                }
+                                                return part;
+                                            });
+                                        })()
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Actions (Only if not deleted) */}
