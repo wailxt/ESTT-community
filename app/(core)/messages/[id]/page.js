@@ -45,7 +45,7 @@ export default function DirectMessagePage() {
     // Deriving shared key for encryption
     useEffect(() => {
         if (!user || !recipientId) return;
-        getSharedKey(user.uid, recipientId).then(setSharedKey);
+        getSharedKey().then(setSharedKey);
     }, [user, recipientId]);
 
     // Redirect if messaging self

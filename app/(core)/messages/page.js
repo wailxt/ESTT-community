@@ -36,7 +36,7 @@ export default function MessagesHub() {
                     let lastMessage = conv.lastMessage;
                     if (conv.ciphertext && conv.iv) {
                         try {
-                            const key = await getSharedKey(user.uid, conv.otherUserId);
+                            const key = await getSharedKey();
                             const decrypted = await decryptText(conv.ciphertext, conv.iv, key);
                             lastMessage = decrypted || lastMessage;
                         } catch (err) {

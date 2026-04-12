@@ -27,6 +27,7 @@ export default function Header() {
     const isChat = pathname?.startsWith('/chat');
     
     const [unreadCount, setUnreadCount] = useState(0);
+    const [unreadDMCount, setUnreadDMCount] = useState(0);
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
@@ -51,6 +52,19 @@ export default function Header() {
             unsubPrivate();
         };
     }, [user, profile, db]);
+
+    useEffect(() => {
+        if (!user || !db) return;
+
+        const convRef = ref(db, `userConversations/${user.uid}`);
+        const unsubDM = onValue(convRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const count = Object.values(data).filter(c => c.unread === true).length;
+            setUnreadDMCount(count);
+        });
+
+        return () => unsubDM();
+    }, [user, db]);
 
     if (isIndividualDM || isChat) return null;
 
@@ -141,6 +155,11 @@ export default function Header() {
 
                                 <Link href="/messages" className="relative p-2 text-muted-foreground hover:text-primary transition-colors">
                                     <MessageSquare className="h-5 w-5" />
+                                    {unreadDMCount > 0 && (
+                                        <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                                            {unreadDMCount > 9 ? '9+' : unreadDMCount}
+                                        </span>
+                                    )}
                                 </Link>
 
                                 <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-primary transition-colors">
@@ -160,6 +179,11 @@ export default function Header() {
                         <>
                             <Link href="/messages" className="relative p-2 text-muted-foreground hover:text-primary transition-colors md:hidden">
                                 <MessageSquare className="h-5 w-5" />
+                                {unreadDMCount > 0 && (
+                                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+                                        {unreadDMCount > 9 ? '9+' : unreadDMCount}
+                                    </span>
+                                )}
                             </Link>
                             <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-primary transition-colors md:hidden">
                                 <Bell className="h-5 w-5" />
