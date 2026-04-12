@@ -52,7 +52,7 @@ export default function MessagesHub() {
 
                 // Fetch profiles for users we don't have yet
                 sortedList.forEach(conv => {
-                    const otherId = conv.otherUserId;
+                    const otherId = conv.otherUserId || conv.id;
                     if (otherId && !profiles[otherId]) {
                         const pRef = ref(db, `users/${otherId}`);
                         get(pRef).then(snap => {
@@ -72,7 +72,8 @@ export default function MessagesHub() {
     }, [user, authLoading]);
 
     const filteredConversations = conversations.filter(conv => {
-        const p = profiles[conv.otherUserId];
+        const otherId = conv.otherUserId || conv.id;
+        const p = profiles[otherId];
         if (!p) return true;
         const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
         return fullName.includes(searchQuery.toLowerCase()) || p.email?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -157,7 +158,7 @@ export default function MessagesHub() {
                         </div>
                     ) : (
                         filteredConversations.map((conv) => {
-                            const otherId = conv.otherUserId;
+                            const otherId = conv.otherUserId || conv.id;
                             const p = profiles[otherId];
                             const initials = p ? `${p.firstName?.[0] || ''}${p.lastName?.[0] || ''}` : '?';
                             const timestamp = conv.timestamp ? new Date(conv.timestamp).toLocaleDateString('fr-FR', {

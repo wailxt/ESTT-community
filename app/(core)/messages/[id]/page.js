@@ -185,13 +185,25 @@ export default function DirectMessagePage() {
                 lastMessageId: lastMessage.id,
                 timestamp: serverTimestamp()
             });
+        }
+    }, [messages, user, roomId, readStatuses]);
 
-            // Clear unread in Hub
+    // Unconditionally clear unread flag when viewing the chat
+    useEffect(() => {
+        if (!user || !recipientId) return;
+
+        const clearUnread = () => {
             update(ref(db, `userConversations/${user.uid}/${recipientId}`), {
                 unread: false
-            });
-        }
-    }, [messages, user, roomId, recipientId, readStatuses]);
+            }).catch(err => console.error("Error clearing unread status:", err));
+        };
+
+        // Clear when opening or receiving a message
+        clearUnread();
+
+        // Extra safeguard: clear when navigating away or unmounting
+        return () => clearUnread();
+    }, [user, recipientId, messages.length]);
 
     const scrollToBottom = () => {
         setTimeout(() => {
