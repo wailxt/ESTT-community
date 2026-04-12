@@ -330,7 +330,7 @@ export default function DiscussionPage() {
     };
 
     return (
-        <main className="fixed inset-0 md:relative md:h-[calc(100vh-64px)] h-[100dvh] bg-white flex flex-col font-sans overflow-hidden overscroll-none">
+        <main className="fixed inset-0 z-[100] h-[100dvh] bg-white flex flex-col font-sans overflow-hidden overscroll-none">
             {/* Header Area */}
             <div className="bg-white border-b border-slate-100 px-4 py-3 md:px-12 md:py-4 shrink-0">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -526,7 +526,7 @@ export default function DiscussionPage() {
             </div>
 
             {/* Input Area */}
-            <div className="bg-white border-t border-slate-100 pb-2 md:pb-6 pt-4 px-6 md:px-12 shrink-0">
+            <div className="bg-white border-t border-slate-100 pb-4 md:pb-8 pt-4 px-6 md:px-12 shrink-0 pb-safe">
                 <div className="max-w-4xl mx-auto w-full">
                     {/* Typing Indicator */}
                     {(() => {

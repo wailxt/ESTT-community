@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import UnifiedDialog from '@/components/ui/UnifiedDialog';
-import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award, Camera, Upload, BadgeCheck, ShieldCheck, Trophy, Zap, LogOut, Bug, Gem } from 'lucide-react';
+import { Loader2, User, Mail, GraduationCap, Calendar, Share2, Star, Ticket, Edit2, X, Megaphone, ArrowRight, FileText, Award, Camera, Upload, BadgeCheck, ShieldCheck, Trophy, Zap, LogOut, Bug, Gem, MessageSquare } from 'lucide-react';
 import { cn, getUserLevel } from '@/lib/utils';
 import { uploadToImgBB } from '@/lib/uploadUtils';
 
@@ -700,15 +700,24 @@ export default function PublicProfilePage() {
                                             </DialogContent>
                                         </Dialog>
                                     ) : (
-                                        <Button
-                                            variant={isStarred ? "default" : "outline"}
-                                            size="sm"
-                                            className={cn("rounded-full px-5 transition-all", isStarred && "bg-yellow-500 hover:bg-yellow-600 border-none text-white")}
-                                            onClick={handleStar}
-                                        >
-                                            <Star className={cn("w-3.5 h-3.5 mr-2", isStarred && "fill-current")} />
-                                            <span>{starCount}</span>
-                                        </Button>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant={isStarred ? "default" : "outline"}
+                                                size="sm"
+                                                className={cn("rounded-full px-5 transition-all text-[11px] font-bold", isStarred && "bg-yellow-500 hover:bg-yellow-600 border-none text-white")}
+                                                onClick={handleStar}
+                                            >
+                                                <Star className={cn("w-3.5 h-3.5 mr-1.5", isStarred && "fill-current")} />
+                                                <span>{starCount}</span>
+                                            </Button>
+
+                                            <Button asChild variant="outline" size="sm" className="rounded-full px-5 gap-2 text-[11px] font-bold">
+                                                <Link href={`/messages/${id}`}>
+                                                    <MessageSquare className="w-3.5 h-3.5" />
+                                                    Message
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     )}
                                     <Button variant="outline" size="icon" className="rounded-full w-8 h-8" onClick={copyProfileLink}>
                                         <Share2 className="w-3.5 h-3.5" />

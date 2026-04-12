@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Bell, LogOut, User as UserIcon, Search } from 'lucide-react';
+import { Menu, X, Bell, LogOut, User as UserIcon, Search, MessageSquare } from 'lucide-react';
 import { db, ref, onValue } from '@/lib/firebase';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,6 +21,11 @@ import {
 export default function Header() {
     const { user, profile, signOut } = useAuth();
     const pathname = usePathname();
+    
+    // Hide header in dedicated chat views
+    const isIndividualDM = pathname?.startsWith('/messages/') && pathname !== '/messages';
+    const isChat = pathname?.startsWith('/chat');
+    
     const [unreadCount, setUnreadCount] = useState(0);
     const [open, setOpen] = useState(false);
 
@@ -46,6 +51,9 @@ export default function Header() {
             unsubPrivate();
         };
     }, [user, profile, db]);
+
+    if (isIndividualDM || isChat) return null;
+
 
     if (pathname === '/downloadAndroid' || pathname === '/docs') return null;
 
@@ -131,6 +139,10 @@ export default function Header() {
                                     )}
                                 </span>
 
+                                <Link href="/messages" className="relative p-2 text-muted-foreground hover:text-primary transition-colors">
+                                    <MessageSquare className="h-5 w-5" />
+                                </Link>
+
                                 <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-primary transition-colors">
                                     <Bell className="h-5 w-5" />
                                     {unreadCount > 0 && (
@@ -145,14 +157,19 @@ export default function Header() {
 
                     {/* Mobile Notifications Bell */}
                     {user && (
-                        <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-primary transition-colors md:hidden">
-                            <Bell className="h-5 w-5" />
+                        <>
+                            <Link href="/messages" className="relative p-2 text-muted-foreground hover:text-primary transition-colors md:hidden">
+                                <MessageSquare className="h-5 w-5" />
+                            </Link>
+                            <Link href="/notifications" className="relative p-2 text-muted-foreground hover:text-primary transition-colors md:hidden">
+                                <Bell className="h-5 w-5" />
                             {unreadCount > 0 && (
                                 <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white">
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </span>
                             )}
-                        </Link>
+                            </Link>
+                        </>
                     )}
 
                     {/* Mobile Search Button */}

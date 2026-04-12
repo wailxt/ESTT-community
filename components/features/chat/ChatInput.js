@@ -154,13 +154,13 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
             setIsLoadingResources(false);
         }
     };
-    
+
     const fetchAllEvents = async () => {
         setIsLoadingEvents(true);
         try {
             const clubsSnap = await get(ref(db, 'clubs'));
             if (!clubsSnap.exists()) return;
-            
+
             const clubsData = clubsSnap.val();
             const eventsPromises = Object.entries(clubsData).map(async ([clubId, club]) => {
                 const eventsSnap = await get(ref(db, `clubs/${clubId}/events`));
@@ -174,7 +174,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                     clubThemeColor: club.themeColor
                 })).filter(e => !e.status || e.status === 'published');
             });
-            
+
             const results = await Promise.all(eventsPromises);
             setEvents(results.flat().sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)));
         } catch (error) {
@@ -190,7 +190,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
         res.module?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const filteredEvents = events.filter(e => 
+    const filteredEvents = events.filter(e =>
         e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.clubName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -326,7 +326,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                                     <Sticker className="w-5 h-5" />
                                 </button>
                             </SheetTrigger>
-                            <SheetContent side="bottom" className="h-[60vh] p-0 flex flex-col rounded-t-[2rem]">
+                            <SheetContent side="bottom" className="h-[60vh] p-0 flex flex-col rounded-t-[2rem] bg-white z-[100]">
                                 <SheetHeader className="p-6 pb-2">
                                     <SheetTitle className="text-xl font-black">Stickers</SheetTitle>
                                     <SheetDescription>
@@ -402,7 +402,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                                     <Library className="w-5 h-5" />
                                 </button>
                             </SheetTrigger>
-                            <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+                            <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col bg-white z-[100]">
                                 <SheetHeader className="p-6 border-b">
                                     <SheetTitle>Partager du contenu</SheetTitle>
                                     <SheetDescription>

@@ -41,14 +41,14 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
             e.preventDefault();
             e.stopPropagation();
         }
-        
+
         if (eventDetails || isDetailLoading || !sharedEvent?.clubId || !sharedEvent?.id) return;
 
         try {
             setIsDetailLoading(true);
             const eventRef = ref(db, `clubs/${sharedEvent.clubId}/events/${sharedEvent.id}`);
             const snapshot = await get(eventRef);
-            
+
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 setEventDetails(data);
@@ -114,7 +114,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
             }, 2000);
         }
     };
-    
+
     // Seen By logic
     const readers = Object.entries(readStatuses || {})
         .filter(([uid, status]) => {
@@ -128,7 +128,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
         .filter(p => p.firstName);
 
     return (
-        <div 
+        <div
             id={`msg-${id}`}
             className={cn(
                 "flex w-full group relative transition-all duration-200",
@@ -146,7 +146,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                     isOwn ? "ml-2 md:ml-3" : "mr-2 md:mr-3"
                 )}>
                     {!isContinuation ? (
-                        <Link 
+                        <Link
                             href={`/profile/${userId}`}
                             className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 hover:opacity-80 transition-opacity"
                         >
@@ -176,7 +176,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                 )}>
                     {/* Name & Badges (Only if not continuation) */}
                     {!isContinuation && (
-                        <Link 
+                        <Link
                             href={`/profile/${userId}`}
                             className={cn(
                                 "flex items-center gap-1 mb-1 md:mb-1.5 hover:opacity-80 transition-opacity",
@@ -186,15 +186,15 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                             <span className="text-[13px] md:text-sm font-bold text-slate-800">
                                 {firstName} {lastName}
                             </span>
-                            
+
                             {verifiedEmail && (
                                 <div className="relative flex items-center">
-                                    <span 
+                                    <span
                                         className={cn(
                                             "material-symbols-outlined select-none !text-[11px] md:!text-[12px]",
                                             isAdmin ? "text-yellow-500" : "text-emerald-500"
-                                        )} 
-                                        style={{ 
+                                        )}
+                                        style={{
                                             fontVariationSettings: "'FILL' 1"
                                         }}
                                     >
@@ -216,12 +216,12 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                         {/* Bubble */}
                         <div className={cn(
                             "rounded-[18px] md:rounded-2xl text-[14px] md:text-[15px] leading-relaxed relative shadow-sm transition-all overflow-hidden border",
-                            type === 'sticker' 
+                            type === 'sticker'
                                 ? "bg-transparent border-transparent shadow-none"
-                                : isDeleted 
-                                    ? "bg-slate-50 text-slate-400 border-slate-100 italic px-4 py-2 md:px-6 md:py-3.5" 
-                                    : isOwn 
-                                        ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500 shadow-sm" 
+                                : isDeleted
+                                    ? "bg-slate-50 text-slate-400 border-slate-100 italic px-4 py-2 md:px-6 md:py-3.5"
+                                    : isOwn
+                                        ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500 shadow-sm"
                                         : "bg-slate-100 text-slate-800 border-slate-200/50",
                             isOwn && !isContinuation && "rounded-tr-none",
                             !isOwn && !isContinuation && "rounded-tl-none"
@@ -232,8 +232,8 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                     onClick={() => scrollToMessage(replyTo.id)}
                                     className={cn(
                                         "w-full text-left border-b px-4 py-1.5 md:px-5 md:py-2.5 mb-1 group/reply transition-all block",
-                                        isOwn 
-                                            ? "bg-black/10 border-black/5 hover:bg-black/20 text-white" 
+                                        isOwn
+                                            ? "bg-black/10 border-black/5 hover:bg-black/20 text-white"
                                             : "bg-white/50 border-slate-200/50 hover:bg-white/80"
                                     )}
                                 >
@@ -257,12 +257,12 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                     </p>
                                 </button>
                             )}
-                            
+
                             {type === 'sticker' && stickerUrl && !isDeleted ? (
                                 <div className="p-0 select-none animate-in zoom-in-50 duration-300">
-                                    <img 
-                                        src={stickerUrl} 
-                                        alt="Sticker" 
+                                    <img
+                                        src={stickerUrl}
+                                        alt="Sticker"
                                         className="w-[120px] md:w-[180px] h-auto object-contain transition-transform hover:scale-110 active:scale-95 cursor-default"
                                         loading="lazy"
                                     />
@@ -274,9 +274,9 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             "relative overflow-hidden border-b border-black/5",
                                             text ? "mb-1" : ""
                                         )}>
-                                            <Link 
-                                                href={imageUrl} 
-                                                target="_blank" 
+                                            <Link
+                                                href={imageUrl}
+                                                target="_blank"
                                                 className="block group/img relative"
                                             >
                                                 <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors z-10 flex items-center justify-center">
@@ -294,23 +294,23 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                     )}
                                 </>
                             )}
-                            
+
                             {/* Shared Resource Card */}
                             {sharedResource && (
                                 <div className={cn(
                                     "p-1 md:p-1.5",
                                     text ? "mb-1" : ""
                                 )}>
-                                    <Link 
+                                    <Link
                                         href={`/resource/${sharedResource.id}`}
                                         className="block w-full max-w-[260px] md:max-w-none group/resource bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-xl overflow-hidden hover:bg-white hover:border-primary/30 transition-all shadow-sm"
                                     >
                                         <div className="flex items-start gap-3 md:gap-4 p-3 md:p-5">
                                             <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-slate-100/50 flex items-center justify-center text-slate-400 group-hover/resource:bg-primary/10 group-hover/resource:text-primary transition-colors shrink-0">
                                                 {sharedResource.type === 'pdf' ? <FileText className="w-5 h-5 md:w-6 md:h-6" /> :
-                                                 sharedResource.type === 'video' ? <Video className="w-5 h-5 md:w-6 md:h-6" /> :
-                                                 sharedResource.type === 'link' ? <LinkIcon className="w-5 h-5 md:w-6 md:h-6" /> :
-                                                 <BookOpen className="w-5 h-5 md:w-6 md:h-6" />}
+                                                    sharedResource.type === 'video' ? <Video className="w-5 h-5 md:w-6 md:h-6" /> :
+                                                        sharedResource.type === 'link' ? <LinkIcon className="w-5 h-5 md:w-6 md:h-6" /> :
+                                                            <BookOpen className="w-5 h-5 md:w-6 md:h-6" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-[13px] md:text-base font-bold text-slate-900 group-hover/resource:text-primary transition-colors line-clamp-2 leading-tight md:leading-snug">
@@ -343,8 +343,8 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             disabled={isDetailLoading}
                                             className={cn(
                                                 "w-full group/event relative overflow-hidden rounded-2xl border transition-all duration-300 text-left",
-                                                isOwn 
-                                                    ? "bg-white/10 border-white/20 hover:bg-white/20" 
+                                                isOwn
+                                                    ? "bg-white/10 border-white/20 hover:bg-white/20"
                                                     : "bg-slate-50 border-slate-100 hover:bg-slate-100 hover:border-primary/20"
                                             )}
                                         >
@@ -380,15 +380,15 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             <p className="text-xs font-bold">Cet événement n'est plus disponible.</p>
                                         </div>
                                     ) : (
-                                        <Link 
+                                        <Link
                                             href={`/clubs/${sharedEvent.clubId}/events/${sharedEvent.id}/registration`}
                                             className="block w-full max-w-[280px] md:max-w-none group/event bg-white border border-slate-200/60 rounded-2xl overflow-hidden hover:border-blue-400/30 transition-all shadow-md active:scale-[0.98]"
                                         >
                                             {eventDetails.imageUrl && (
                                                 <div className="w-full h-32 md:h-40 overflow-hidden relative border-b border-slate-100">
-                                                    <img 
-                                                        src={eventDetails.imageUrl} 
-                                                        alt={eventDetails.title} 
+                                                    <img
+                                                        src={eventDetails.imageUrl}
+                                                        alt={eventDetails.title}
                                                         className="w-full h-full object-cover transition-transform duration-500 group-hover/event:scale-110"
                                                     />
                                                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
@@ -449,8 +449,8 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                                                 const p = profiles[uid];
                                                                 if (!p) return null;
                                                                 return (
-                                                                    <div 
-                                                                        key={uid} 
+                                                                    <div
+                                                                        key={uid}
                                                                         className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shrink-0 shadow-sm transition-transform hover:z-10 hover:scale-110"
                                                                         title={`${p.firstName} ${p.lastName}`}
                                                                     >
@@ -503,12 +503,12 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             return parts.map((part, index) => {
                                                 if (part.startsWith('@') && part.includes('_')) {
                                                     return (
-                                                        <span 
-                                                            key={index} 
+                                                        <span
+                                                            key={index}
                                                             className={cn(
                                                                 "font-bold px-1.5 py-0.5 rounded-md mx-0.5 inline-block transition-all",
-                                                                isOwn 
-                                                                    ? "bg-white/20 text-white shadow-sm ring-1 ring-white/10" 
+                                                                isOwn
+                                                                    ? "bg-white/20 text-white shadow-sm ring-1 ring-white/10"
                                                                     : "bg-primary/10 text-primary shadow-sm ring-1 ring-primary/5"
                                                             )}
                                                         >
@@ -518,7 +518,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                                 }
                                                 if (part.startsWith('http')) {
                                                     return (
-                                                        <a 
+                                                        <a
                                                             key={index}
                                                             href={part}
                                                             target="_blank"
@@ -549,7 +549,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                 (showPicker || showMenu) && "opacity-100"
                             )}>
                                 {/* Reaction Picker Trigger */}
-                                <button 
+                                <button
                                     onClick={() => {
                                         setShowPicker(!showPicker);
                                         setShowMenu(false);
@@ -564,7 +564,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
 
                                 {/* More Actions Trigger */}
                                 <div className="relative">
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             setShowMenu(!showMenu);
                                             setShowPicker(false);
@@ -581,9 +581,9 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                     {showMenu && (
                                         <div className={cn(
                                             "absolute bottom-full mb-3 w-40 bg-white rounded-xl shadow-2xl border border-slate-100 py-1.5 z-40 animate-in fade-in zoom-in duration-200",
-                                            isOwn ? "left-0" : "right-0"
+                                            isOwn ? "right-0" : "left-0"
                                         )}>
-                                            <button 
+                                            <button
                                                 onClick={() => {
                                                     onReply(message);
                                                     setShowMenu(false);
@@ -594,18 +594,10 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                                 Répondre
                                             </button>
 
-                                            {canEdit && (
-                                                <button 
-                                                    onClick={() => setShowMenu(false)} // Placeholder
-                                                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                    Modifier
-                                                </button>
-                                            )}
+
 
                                             {canDelete && (
-                                                <button 
+                                                <button
                                                     onClick={() => {
                                                         setShowDeleteConfirm(true);
                                                         setShowMenu(false);
@@ -620,7 +612,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             {isOwn && (
                                                 <>
                                                     <div className="h-px bg-slate-100 my-1 mx-2" />
-                                                    <button 
+                                                    <button
                                                         onClick={() => {
                                                             setShowSeenBy(true);
                                                             setShowMenu(false);
@@ -636,7 +628,7 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             {canReport && (
                                                 <>
                                                     <div className="h-px bg-slate-100 my-1 mx-2" />
-                                                    <button 
+                                                    <button
                                                         onClick={() => setShowMenu(false)} // Placeholder
                                                         className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-500 hover:bg-slate-50 transition-colors"
                                                     >
@@ -677,11 +669,11 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                     {showDeleteConfirm && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
                             {/* Backdrop */}
-                            <div 
+                            <div
                                 className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                                 onClick={() => setShowDeleteConfirm(false)}
                             />
-                            
+
                             {/* Dialog Content */}
                             <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
                                 <div className="p-8 text-center">
@@ -694,13 +686,13 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                     </p>
                                 </div>
                                 <div className="flex border-t border-slate-100">
-                                    <button 
+                                    <button
                                         onClick={() => setShowDeleteConfirm(false)}
                                         className="flex-1 px-6 py-4 text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors"
                                     >
                                         Garder
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => {
                                             onDelete();
                                             setShowDeleteConfirm(false);
@@ -726,8 +718,8 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                     onClick={() => onReact(emoji)}
                                     className={cn(
                                         "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-medium transition-all border",
-                                        hasReacted 
-                                            ? "bg-blue-50 border-blue-200 text-blue-600" 
+                                        hasReacted
+                                            ? "bg-blue-50 border-blue-200 text-blue-600"
                                             : "bg-white border-slate-100 text-slate-500 hover:border-slate-300"
                                     )}
                                 >
@@ -759,15 +751,15 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
             {/* Seen By Modal */}
             {showSeenBy && (
                 <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-                    <div 
+                    <div
                         className="absolute inset-0 bg-white/80 backdrop-blur-sm"
                         onClick={() => setShowSeenBy(false)}
                     />
-                    
+
                     <div className="relative w-full max-w-sm bg-white rounded-2xl border border-slate-200 overflow-hidden">
                         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
                             <h3 className="font-bold text-slate-900 text-sm">Vues par</h3>
-                            <button 
+                            <button
                                 onClick={() => setShowSeenBy(false)}
                                 className="text-slate-400 hover:text-slate-900 transition-colors"
                             >
