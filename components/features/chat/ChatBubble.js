@@ -1,17 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { BadgeCheck, ShieldCheck, Gem, User, SmilePlus, Trash2, MoreHorizontal, Pencil, AlertTriangle, X, Reply, Flag, FileText, Video, Link as LinkIcon, ArrowRight, BookOpen } from 'lucide-react';
+import { BadgeCheck, ShieldCheck, Gem, User, SmilePlus, Trash2, MoreHorizontal, Pencil, AlertTriangle, X, Reply, Flag, FileText, Video, Link as LinkIcon, ArrowRight, BookOpen, Users, CheckCheck, Calendar, MapPin, Clock, CalendarDays, Loader2 } from 'lucide-react';
+import { db, ref, get } from '@/lib/firebase';
 
 const COMMON_EMOJIS = ['❤️', '😂', '👍', '🔥', '😮'];
 
-export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply, currentUserId, profile: externalProfile, isContinuation, isLastInGroup }) {
+export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply, currentUserId, profile: externalProfile, isContinuation, isLastInGroup, profiles = {}, readStatuses = {} }) {
     const [showPicker, setShowPicker] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showSeenBy, setShowSeenBy] = useState(false);
+    const [eventDetails, setEventDetails] = useState(null);
+    const [isDetailLoading, setIsDetailLoading] = useState(false);
+    const [loadError, setLoadError] = useState(false);
+    const [attendees, setAttendees] = useState([]);
+    const [clubInfo, setClubInfo] = useState(null);
 
-    const { id, userId, text, timestamp, reactions, profile: messageProfile, isDeleted, replyTo, imageUrl, sharedResource } = message;
+    const { id, userId, text, timestamp, reactions, profile: messageProfile, isDeleted, replyTo, imageUrl, sharedResource, sharedEvent, type, stickerUrl } = message;
     const profile = externalProfile || messageProfile;
     const { firstName, lastName, photoUrl, verifiedEmail, role, subscription } = profile || {};
 
@@ -27,6 +34,68 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
     const canEdit = isOwn;
     const canDelete = isOwn;
     const canReport = !isOwn;
+
+    const handleLoadEvent = async (e) => {
+        // Prevent clicking the bubble or link before data is ready
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        if (eventDetails || isDetailLoading || !sharedEvent?.clubId || !sharedEvent?.id) return;
+
+        try {
+            setIsDetailLoading(true);
+            const eventRef = ref(db, `clubs/${sharedEvent.clubId}/events/${sharedEvent.id}`);
+            const snapshot = await get(eventRef);
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                setEventDetails(data);
+
+                // Load attendees (Social Proof)
+                try {
+                    const attendeesRef = ref(db, `eventAttendees/${sharedEvent.id}`);
+                    const attendeesSnap = await get(attendeesRef);
+                    if (attendeesSnap.exists()) {
+                        const attendeesList = Object.keys(attendeesSnap.val());
+                        setAttendees(attendeesList);
+                    }
+                } catch (attErr) {
+                    console.error('Failed to load attendees:', attErr);
+                }
+
+                // Load Club Info
+                try {
+                    const clubRef = ref(db, `clubs/${sharedEvent.clubId}`);
+                    const clubSnap = await get(clubRef);
+                    if (clubSnap.exists()) {
+                        const cData = clubSnap.val();
+                        setClubInfo({
+                            name: cData.name,
+                            logo: cData.logo
+                        });
+                    }
+                } catch (clubErr) {
+                    console.error('Failed to load club info:', clubErr);
+                }
+            } else {
+                setLoadError(true);
+            }
+        } catch (error) {
+            console.error('Failed to load event details:', error);
+            setLoadError(true);
+        } finally {
+            setIsDetailLoading(false);
+        }
+    };
+
+    // Auto-load if the data was somehow already partially there (backwards compatibility)
+    useEffect(() => {
+        if (sharedEvent?.title && !eventDetails) {
+            setEventDetails(sharedEvent);
+        }
+    }, [sharedEvent]);
 
     // Reactions logic
     const reactionList = reactions ? Object.entries(reactions).map(([emoji, users]) => ({
@@ -45,6 +114,18 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
             }, 2000);
         }
     };
+    
+    // Seen By logic
+    const readers = Object.entries(readStatuses || {})
+        .filter(([uid, status]) => {
+            // Check if user has read this message (id compare works for Firebase push IDs)
+            return uid !== userId && status.lastMessageId >= id;
+        })
+        .map(([uid, status]) => ({
+            ...(profiles?.[uid] || {}),
+            seenAt: status.timestamp
+        }))
+        .filter(p => p.firstName);
 
     return (
         <div 
@@ -135,11 +216,13 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                         {/* Bubble */}
                         <div className={cn(
                             "rounded-[18px] md:rounded-2xl text-[14px] md:text-[15px] leading-relaxed relative shadow-sm transition-all overflow-hidden border",
-                            isDeleted 
-                                ? "bg-slate-50 text-slate-400 border-slate-100 italic px-4 py-2 md:px-6 md:py-3.5" 
-                                : isOwn 
-                                    ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500 shadow-sm" 
-                                    : "bg-slate-100 text-slate-800 border-slate-200/50",
+                            type === 'sticker' 
+                                ? "bg-transparent border-transparent shadow-none"
+                                : isDeleted 
+                                    ? "bg-slate-50 text-slate-400 border-slate-100 italic px-4 py-2 md:px-6 md:py-3.5" 
+                                    : isOwn 
+                                        ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white border-blue-500 shadow-sm" 
+                                        : "bg-slate-100 text-slate-800 border-slate-200/50",
                             isOwn && !isContinuation && "rounded-tr-none",
                             !isOwn && !isContinuation && "rounded-tl-none"
                         )}>
@@ -175,28 +258,41 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                 </button>
                             )}
                             
-                            {imageUrl && !isDeleted && (
-                                <div className={cn(
-                                    "relative overflow-hidden",
-                                    text ? "mb-1" : ""
-                                )}>
-                                    <Link 
-                                        href={imageUrl} 
-                                        target="_blank" 
-                                        className="block group/img relative"
-                                    >
-                                        <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors z-10 flex items-center justify-center">
-                                            <span className="opacity-0 group-hover/img:opacity-100 text-white text-[10px] font-bold uppercase tracking-wider bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all transform scale-90 group-hover/img:scale-100">
-                                                Voir en grand
-                                            </span>
-                                        </div>
-                                        <img
-                                            src={imageUrl}
-                                            alt="Chat attachment"
-                                            className="max-w-[240px] md:max-w-[400px] max-h-[300px] md:max-h-[450px] w-auto h-auto object-contain block mx-auto rounded-lg"
-                                        />
-                                    </Link>
+                            {type === 'sticker' && stickerUrl && !isDeleted ? (
+                                <div className="p-0 select-none animate-in zoom-in-50 duration-300">
+                                    <img 
+                                        src={stickerUrl} 
+                                        alt="Sticker" 
+                                        className="w-[120px] md:w-[180px] h-auto object-contain transition-transform hover:scale-110 active:scale-95 cursor-default"
+                                        loading="lazy"
+                                    />
                                 </div>
+                            ) : (
+                                <>
+                                    {imageUrl && !isDeleted && (
+                                        <div className={cn(
+                                            "relative overflow-hidden border-b border-black/5",
+                                            text ? "mb-1" : ""
+                                        )}>
+                                            <Link 
+                                                href={imageUrl} 
+                                                target="_blank" 
+                                                className="block group/img relative"
+                                            >
+                                                <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/10 transition-colors z-10 flex items-center justify-center">
+                                                    <span className="opacity-0 group-hover/img:opacity-100 text-white text-[10px] font-bold uppercase tracking-wider bg-black/40 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all transform scale-90 group-hover/img:scale-100">
+                                                        Voir en grand
+                                                    </span>
+                                                </div>
+                                                <img
+                                                    src={imageUrl}
+                                                    alt="Chat attachment"
+                                                    className="max-w-[240px] md:max-w-[400px] max-h-[300px] md:max-h-[450px] w-auto h-auto object-contain block mx-auto rounded-lg"
+                                                />
+                                            </Link>
+                                        </div>
+                                    )}
+                                </>
                             )}
                             
                             {/* Shared Resource Card */}
@@ -232,6 +328,163 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                             </span>
                                         </div>
                                     </Link>
+                                </div>
+                            )}
+
+                            {/* Shared Event Card (Lazy Loaded) */}
+                            {sharedEvent && (
+                                <div className={cn(
+                                    "p-1 md:p-1.5",
+                                    text ? "mb-1" : ""
+                                )}>
+                                    {!eventDetails && !loadError ? (
+                                        <button
+                                            onClick={handleLoadEvent}
+                                            disabled={isDetailLoading}
+                                            className={cn(
+                                                "w-full group/event relative overflow-hidden rounded-2xl border transition-all duration-300 text-left",
+                                                isOwn 
+                                                    ? "bg-white/10 border-white/20 hover:bg-white/20" 
+                                                    : "bg-slate-50 border-slate-100 hover:bg-slate-100 hover:border-primary/20"
+                                            )}
+                                        >
+                                            <div className="p-4 md:p-5 flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={cn(
+                                                        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover/event:scale-110",
+                                                        isOwn ? "bg-white/20" : "bg-primary/10"
+                                                    )}>
+                                                        {isDetailLoading ? (
+                                                            <Loader2 className={cn("w-6 h-6 animate-spin", isOwn ? "text-white" : "text-primary")} />
+                                                        ) : (
+                                                            <CalendarDays className={cn("w-6 h-6", isOwn ? "text-white" : "text-primary")} />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className={cn("text-xs font-black uppercase tracking-widest mb-0.5", isOwn ? "text-white" : "text-slate-900")}>
+                                                            Événement Partagé
+                                                        </h4>
+                                                        <p className={cn("text-[11px] font-bold opacity-70", isOwn ? "text-white/80" : "text-slate-500")}>
+                                                            {isDetailLoading ? "Chargement..." : "Cliquez pour voir les détails"}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {!isDetailLoading && (
+                                                    <ArrowRight className={cn("w-5 h-5 transition-transform group-hover/event:translate-x-1", isOwn ? "text-white/40" : "text-slate-300")} />
+                                                )}
+                                            </div>
+                                        </button>
+                                    ) : loadError ? (
+                                        <div className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 text-red-600">
+                                            <AlertTriangle className="w-5 h-5 shrink-0" />
+                                            <p className="text-xs font-bold">Cet événement n'est plus disponible.</p>
+                                        </div>
+                                    ) : (
+                                        <Link 
+                                            href={`/clubs/${sharedEvent.clubId}/events/${sharedEvent.id}/registration`}
+                                            className="block w-full max-w-[280px] md:max-w-none group/event bg-white border border-slate-200/60 rounded-2xl overflow-hidden hover:border-blue-400/30 transition-all shadow-md active:scale-[0.98]"
+                                        >
+                                            {eventDetails.imageUrl && (
+                                                <div className="w-full h-32 md:h-40 overflow-hidden relative border-b border-slate-100">
+                                                    <img 
+                                                        src={eventDetails.imageUrl} 
+                                                        alt={eventDetails.title} 
+                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/event:scale-110"
+                                                    />
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                                                </div>
+                                            )}
+                                            <div className="p-4 md:p-6">
+                                                <div className="flex items-start gap-4 mb-4">
+                                                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl border border-slate-100/50 overflow-hidden shrink-0 shadow-sm bg-white p-1">
+                                                        {clubInfo?.logo || eventDetails.clubLogo ? (
+                                                            <img src={clubInfo?.logo || eventDetails.clubLogo} alt="" className="w-full h-full object-contain" />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-slate-50 flex items-center justify-center text-slate-400">
+                                                                <CalendarDays className="w-6 h-6" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                                                                {clubInfo?.name || eventDetails.clubName || "Club"}
+                                                            </span>
+                                                            <span className={cn(
+                                                                "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
+                                                                (eventDetails.isPaid || (eventDetails.price && Number(eventDetails.price) > 0)) ? "bg-amber-50 text-amber-600 border-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                                                            )}>
+                                                                {(eventDetails.isPaid || (eventDetails.price && Number(eventDetails.price) > 0)) ? `${eventDetails.price} DH` : 'Gratuit'}
+                                                            </span>
+                                                        </div>
+                                                        <h4 className="text-[14px] md:text-lg font-black text-slate-900 group-hover/event:text-blue-600 transition-colors line-clamp-2 leading-tight">
+                                                            {eventDetails.title}
+                                                        </h4>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-3 md:gap-4 p-3 md:p-4 rounded-xl bg-slate-50/50 border border-slate-100/50">
+                                                    <div className="space-y-0.5 md:space-y-1">
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Date</p>
+                                                        <p className="text-[11px] md:text-sm font-bold text-slate-700 flex items-center gap-1.5 min-w-0">
+                                                            <Calendar className="w-3 h-3 md:w-3.5 md:h-3.5 text-blue-500 shrink-0" />
+                                                            <span className="truncate">
+                                                                {new Date(eventDetails.date || eventDetails.eventDate || eventDetails.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                                            </span>
+                                                        </p>
+                                                    </div>
+                                                    <div className="space-y-0.5 md:space-y-1">
+                                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Lieu</p>
+                                                        <p className="text-[11px] md:text-sm font-bold text-slate-700 flex items-center gap-1.5 min-w-0">
+                                                            <MapPin className="w-3 h-3 md:w-3.5 md:h-3.5 text-rose-500 shrink-0" />
+                                                            <span className="truncate">{eventDetails.location || 'EST Tech'}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                {/* Social Proof (Attendees from chat) */}
+                                                {attendees.length > 0 && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                                        <div className="flex -space-x-2 md:-space-x-2.5 overflow-hidden">
+                                                            {attendees.slice(0, 5).map((uid, i) => {
+                                                                const p = profiles[uid];
+                                                                if (!p) return null;
+                                                                return (
+                                                                    <div 
+                                                                        key={uid} 
+                                                                        className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shrink-0 shadow-sm transition-transform hover:z-10 hover:scale-110"
+                                                                        title={`${p.firstName} ${p.lastName}`}
+                                                                    >
+                                                                        {p.photoUrl ? (
+                                                                            <img src={p.photoUrl} alt="" className="w-full h-full object-cover rounded-full" />
+                                                                        ) : (
+                                                                            <span className="text-[10px] font-bold text-slate-500">{p.firstName?.[0]}</span>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            {attendees.length > 5 && (
+                                                                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full border-2 border-white bg-slate-800 flex items-center justify-center shrink-0 z-10">
+                                                                    <span className="text-[9px] md:text-[10px] font-black text-white">+{attendees.length - 5}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                                            {attendees.length} inscrit{attendees.length > 1 ? 's' : ''}
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="bg-slate-50 border-t border-slate-100 px-4 md:px-6 py-3.5 md:py-4 flex items-center justify-between group-hover/event:bg-blue-50/50 transition-colors">
+                                                <span className="text-[10px] md:text-xs font-bold text-slate-500 flex items-center gap-1.5">
+                                                    <Clock className="w-3.5 h-3.5 text-blue-500" /> {eventDetails.time || 'Non spécifié'}
+                                                </span>
+                                                <span className="text-[11px] md:text-sm font-black text-blue-600 flex items-center gap-1.5 group-hover/event:translate-x-1 transition-transform">
+                                                    Participer <ArrowRight className="w-4 h-4" />
+                                                </span>
+                                            </div>
+                                        </Link>
+                                    )}
                                 </div>
                             )}
 
@@ -364,6 +617,22 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                                 </button>
                                             )}
 
+                                            {isOwn && (
+                                                <>
+                                                    <div className="h-px bg-slate-100 my-1 mx-2" />
+                                                    <button 
+                                                        onClick={() => {
+                                                            setShowSeenBy(true);
+                                                            setShowMenu(false);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        <Users className="w-4 h-4" />
+                                                        Qui a vu ?
+                                                    </button>
+                                                </>
+                                            )}
+
                                             {canReport && (
                                                 <>
                                                     <div className="h-px bg-slate-100 my-1 mx-2" />
@@ -469,17 +738,76 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                         </div>
                     )}
 
-                    {/* Timestamp (Always on last in group, or if hovering) */}
+                    {/* Timestamp & Seen Status */}
                     <div className={cn(
-                        "transition-all duration-200 overflow-hidden",
+                        "transition-all duration-200 overflow-hidden flex items-center gap-2",
                         isLastInGroup ? "max-h-10 opacity-100" : "max-h-0 opacity-0 group-hover:max-h-10 group-hover:opacity-100"
                     )}>
                         <span className="text-[10px] font-medium text-slate-400 mt-2 block uppercase tracking-wider">
                             {formattedTime}
                         </span>
+                        {isOwn && readers.length > 0 && (
+                            <div className="flex items-center gap-0.5 text-blue-500 mt-2">
+                                <CheckCheck className="w-3 h-3" />
+                                <span className="text-[10px] font-bold">{readers.length}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
+
+            {/* Seen By Modal */}
+            {showSeenBy && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div 
+                        className="absolute inset-0 bg-white/80 backdrop-blur-sm"
+                        onClick={() => setShowSeenBy(false)}
+                    />
+                    
+                    <div className="relative w-full max-w-sm bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                            <h3 className="font-bold text-slate-900 text-sm">Vues par</h3>
+                            <button 
+                                onClick={() => setShowSeenBy(false)}
+                                className="text-slate-400 hover:text-slate-900 transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="max-h-[300px] overflow-y-auto p-2">
+                            {readers.length === 0 ? (
+                                <div className="py-8 text-center text-slate-400 text-sm">
+                                    Aucune vue pour le moment
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-slate-50">
+                                    {readers.map((p, idx) => {
+                                        const seenTime = p.seenAt ? new Date(p.seenAt).toLocaleTimeString('fr-FR', {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        }) : '';
+
+                                        return (
+                                            <div
+                                                key={p.uid || idx}
+                                                className="flex items-center justify-between p-3"
+                                            >
+                                                <span className="font-medium text-slate-800 text-[14px]">
+                                                    {p.firstName} {p.lastName}
+                                                </span>
+                                                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">
+                                                    {seenTime}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

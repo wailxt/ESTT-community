@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { ArrowUp, Image as ImageIcon, Loader2, Library, Search, FileText, Video, Link as LinkIcon, ArrowRight, BookOpen } from 'lucide-react';
+import { ArrowUp, Image as ImageIcon, Loader2, Library, Search, FileText, Video, Link as LinkIcon, ArrowRight, BookOpen, Sticker } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uploadToImgBB } from '@/lib/uploadUtils';
-import { db, ref, get } from '@/lib/firebase';
+import { db, ref, get, onValue } from '@/lib/firebase';
 import {
     Sheet,
     SheetContent,
@@ -11,8 +10,14 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-
+import { useState, useRef, useEffect } from 'react';
 export default function ChatInput({ onSendMessage, onTypingChange, disabled, mentionableUsers = [] }) {
     const [message, setMessage] = useState('');
     const [isUploading, setIsUploading] = useState(false);
@@ -20,19 +25,47 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
     const [resources, setResources] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [isLoadingResources, setIsLoadingResources] = useState(false);
-    
+    const [events, setEvents] = useState([]);
+    const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+
+    // Sticker state
+    const [isStickerDrawerOpen, setIsStickerDrawerOpen] = useState(false);
+    const [stickerPacks, setStickerPacks] = useState([]);
+    const [isLoadingStickers, setIsLoadingStickers] = useState(false);
+
     // Mention state
     const [showMentions, setShowMentions] = useState(false);
     const [mentionQuery, setMentionQuery] = useState('');
     const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
-    
+
     const fileInputRef = useRef(null);
     const inputRef = useRef(null);
     const typingTimeoutRef = useRef(null);
     const isTypingRef = useRef(false);
 
+    // Fetch stickers when drawer opens
+    useEffect(() => {
+        if (isStickerDrawerOpen && stickerPacks.length === 0) {
+            setIsLoadingStickers(true);
+            const stickersRef = ref(db, 'stickers');
+            onValue(stickersRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const packs = Object.values(data);
+                    setStickerPacks(packs);
+                }
+                setIsLoadingStickers(false);
+            });
+        }
+    }, [isStickerDrawerOpen]);
+
+    const handleSendSticker = (stickerUrl) => {
+        onSendMessage('', null, null, { type: 'sticker', stickerUrl });
+        setIsStickerDrawerOpen(false);
+    };
+
     // Filter mentionable users
-    const filteredMentions = mentionableUsers.filter(u => 
+    const filteredMentions = mentionableUsers.filter(u =>
         u.name.toLowerCase().includes(mentionQuery.toLowerCase())
     ).slice(0, 5); // Limit to 5 for UI clarity
 
@@ -63,13 +96,13 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
         const cursorPosition = inputRef.current.selectionStart;
         const textBeforeCursor = message.slice(0, cursorPosition);
         const textAfterCursor = message.slice(cursorPosition);
-        
+
         const mentionStart = textBeforeCursor.lastIndexOf('@');
         const newMessage = message.slice(0, mentionStart) + `@${user.name} ` + textAfterCursor;
-        
+
         setMessage(newMessage);
         setShowMentions(false);
-        
+
         // Refocus and move cursor
         setTimeout(() => {
             inputRef.current.focus();
@@ -97,8 +130,9 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
 
     // Fetch resources when drawer opens
     useEffect(() => {
-        if (isResourceDrawerOpen && resources.length === 0) {
-            fetchAllResources();
+        if (isResourceDrawerOpen) {
+            if (resources.length === 0) fetchAllResources();
+            if (events.length === 0) fetchAllEvents();
         }
     }, [isResourceDrawerOpen]);
 
@@ -120,11 +154,46 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
             setIsLoadingResources(false);
         }
     };
+    
+    const fetchAllEvents = async () => {
+        setIsLoadingEvents(true);
+        try {
+            const clubsSnap = await get(ref(db, 'clubs'));
+            if (!clubsSnap.exists()) return;
+            
+            const clubsData = clubsSnap.val();
+            const eventsPromises = Object.entries(clubsData).map(async ([clubId, club]) => {
+                const eventsSnap = await get(ref(db, `clubs/${clubId}/events`));
+                if (!eventsSnap.exists()) return [];
+                return Object.entries(eventsSnap.val()).map(([id, data]) => ({
+                    id,
+                    ...data,
+                    clubId,
+                    clubName: club.name,
+                    clubLogo: club.logo,
+                    clubThemeColor: club.themeColor
+                })).filter(e => !e.status || e.status === 'published');
+            });
+            
+            const results = await Promise.all(eventsPromises);
+            setEvents(results.flat().sort((a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)));
+        } catch (error) {
+            console.error('Error fetching events for chat:', error);
+        } finally {
+            setIsLoadingEvents(false);
+        }
+    };
 
-    const filteredResources = resources.filter(res => 
-        res.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const filteredResources = resources.filter(res =>
+        res.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         res.professor?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         res.module?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredEvents = events.filter(e => 
+        e.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.clubName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.description?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const getResourceIcon = (type) => {
@@ -147,6 +216,14 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
         setIsResourceDrawerOpen(false);
     };
 
+    const handleShareEvent = (event) => {
+        onSendMessage('', null, null, {}, {
+            id: event.id,
+            clubId: event.clubId
+        });
+        setIsResourceDrawerOpen(false);
+    };
+
     // Typing detection logic
     useEffect(() => {
         if (!message.trim() || disabled) {
@@ -163,7 +240,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
         }
 
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        
+
         typingTimeoutRef.current = setTimeout(() => {
             isTypingRef.current = false;
             onTypingChange?.(false);
@@ -196,7 +273,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
         if (message.trim() && !disabled) {
             onSendMessage(message.trim());
             setMessage('');
-            
+
             if (isTypingRef.current) {
                 isTypingRef.current = false;
                 onTypingChange?.(false);
@@ -207,7 +284,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
 
     return (
         <div className="flex flex-col w-full gap-2">
-            <form 
+            <form
                 onSubmit={handleSubmit}
                 className="flex items-center w-full gap-2"
             >
@@ -219,7 +296,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                         accept="image/*"
                         className="hidden"
                     />
-                    
+
                     <div className="flex items-center gap-1.5">
                         <button
                             type="button"
@@ -238,6 +315,82 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                             )}
                         </button>
 
+                        <Sheet open={isStickerDrawerOpen} onOpenChange={setIsStickerDrawerOpen}>
+                            <SheetTrigger asChild>
+                                <button
+                                    type="button"
+                                    disabled={disabled || isUploading}
+                                    className="flex-shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all bg-slate-50 border border-slate-200 text-slate-500 hover:text-primary hover:border-primary/30"
+                                    title="Envoyer un sticker"
+                                >
+                                    <Sticker className="w-5 h-5" />
+                                </button>
+                            </SheetTrigger>
+                            <SheetContent side="bottom" className="h-[60vh] p-0 flex flex-col rounded-t-[2rem]">
+                                <SheetHeader className="p-6 pb-2">
+                                    <SheetTitle className="text-xl font-black">Stickers</SheetTitle>
+                                    <SheetDescription>
+                                        Exprimez-vous avec des stickers.
+                                    </SheetDescription>
+                                </SheetHeader>
+
+                                <Tabs defaultValue={stickerPacks[0]?.id || "empty"} className="flex-1 flex flex-col overflow-hidden">
+                                    <div className="px-6 pb-2 overflow-x-auto no-scrollbar">
+                                        <TabsList className="bg-slate-100/50 p-1 rounded-xl w-max min-w-full justify-start">
+                                            {stickerPacks.length > 0 ? (
+                                                stickerPacks.map(pack => (
+                                                    <TabsTrigger
+                                                        key={pack.id}
+                                                        value={pack.id}
+                                                        className="rounded-lg font-bold data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2"
+                                                    >
+                                                        {pack.name}
+                                                    </TabsTrigger>
+                                                ))
+                                            ) : (
+                                                <TabsTrigger value="empty" disabled>Aucun pack</TabsTrigger>
+                                            )}
+                                        </TabsList>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                                        {isLoadingStickers ? (
+                                            <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 text-center">
+                                                <Loader2 className="w-8 h-8 animate-spin mx-auto" />
+                                                <p className="font-bold">Chargement des stickers...</p>
+                                            </div>
+                                        ) : stickerPacks.length > 0 ? (
+                                            stickerPacks.map(pack => (
+                                                <TabsContent key={pack.id} value={pack.id} className="mt-0 outline-none">
+                                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4 pb-8">
+                                                        {pack.items?.map((url, idx) => (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={() => handleSendSticker(url)}
+                                                                className="aspect-square relative group hover:scale-110 active:scale-95 transition-all duration-200"
+                                                            >
+                                                                <img
+                                                                    src={url}
+                                                                    alt={`${pack.name} sticker ${idx}`}
+                                                                    className="w-full h-full object-contain"
+                                                                    loading="lazy"
+                                                                />
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </TabsContent>
+                                            ))
+                                        ) : (
+                                            <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 grayscale opacity-30">
+                                                <Sticker className="w-16 h-16" />
+                                                <p className="font-bold text-center">Pas encore de stickers disponibles</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </Tabs>
+                            </SheetContent>
+                        </Sheet>
+
                         <Sheet open={isResourceDrawerOpen} onOpenChange={setIsResourceDrawerOpen}>
                             <SheetTrigger asChild>
                                 <button
@@ -251,54 +404,110 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                             </SheetTrigger>
                             <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
                                 <SheetHeader className="p-6 border-b">
-                                    <SheetTitle>Partager une ressource</SheetTitle>
+                                    <SheetTitle>Partager du contenu</SheetTitle>
                                     <SheetDescription>
-                                        Recherchez et partagez des ressources académiques avec la communauté.
+                                        Partagez des ressources ou des événements avec la communauté.
                                     </SheetDescription>
                                     <div className="relative mt-4">
                                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                         <Input
-                                            placeholder="Rechercher par titre, module ou prof..."
+                                            placeholder="Rechercher..."
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                             className="pl-10 rounded-full bg-slate-50"
                                         />
                                     </div>
                                 </SheetHeader>
-                                
-                                <div className="flex-1 overflow-y-auto p-4">
-                                    {isLoadingResources ? (
-                                        <div className="flex flex-col items-center justify-center py-10">
-                                            <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-                                            <p className="text-xs text-slate-400">Chargement de la bibliothèque...</p>
-                                        </div>
-                                    ) : filteredResources.length === 0 ? (
-                                        <div className="text-center py-10">
-                                            <p className="text-slate-500 text-sm">Aucune ressource trouvée.</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {filteredResources.map((res) => (
-                                                <div 
-                                                    key={res.id}
-                                                    className="group flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all cursor-pointer"
-                                                    onClick={() => handleShareResource(res)}
-                                                >
-                                                    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                                        {getResourceIcon(res.type)}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-bold text-slate-900 truncate">{res.title}</p>
-                                                        <p className="text-[11px] text-slate-500 truncate">
-                                                            {res.module || res.moduleId} • {res.professor || 'Professeur inconnu'}
-                                                        </p>
-                                                    </div>
-                                                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+
+                                <Tabs defaultValue="resources" className="flex-1 flex flex-col overflow-hidden">
+                                    <div className="px-6 py-2 border-b">
+                                        <TabsList className="grid grid-cols-2 w-full">
+                                            <TabsTrigger value="resources" className="text-xs font-bold">Ressources</TabsTrigger>
+                                            <TabsTrigger value="events" className="text-xs font-bold">Événements</TabsTrigger>
+                                        </TabsList>
+                                    </div>
+
+                                    <div className="flex-1 overflow-y-auto">
+                                        <TabsContent value="resources" className="m-0 p-4 h-full">
+                                            {isLoadingResources ? (
+                                                <div className="flex flex-col items-center justify-center py-10 opacity-60">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                                                    <p className="text-xs text-slate-400">Chargement des ressources...</p>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
+                                            ) : filteredResources.length === 0 ? (
+                                                <div className="text-center py-10">
+                                                    <p className="text-slate-500 text-sm">Aucune ressource trouvée.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {filteredResources.map((res) => (
+                                                        <div
+                                                            key={res.id}
+                                                            className="group flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all cursor-pointer"
+                                                            onClick={() => handleShareResource(res)}
+                                                        >
+                                                            <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                                                                {getResourceIcon(res.type)}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-slate-900 truncate">{res.title}</p>
+                                                                <p className="text-[11px] text-slate-500 truncate">
+                                                                    {res.module || res.moduleId} • {res.professor || 'Professeur inconnu'}
+                                                                </p>
+                                                            </div>
+                                                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </TabsContent>
+
+                                        <TabsContent value="events" className="m-0 p-4 h-full">
+                                            {isLoadingEvents ? (
+                                                <div className="flex flex-col items-center justify-center py-10 opacity-60">
+                                                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+                                                    <p className="text-xs text-slate-400">Chargement des événements...</p>
+                                                </div>
+                                            ) : filteredEvents.length === 0 ? (
+                                                <div className="text-center py-10">
+                                                    <p className="text-slate-500 text-sm">Aucun événement trouvé.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    {filteredEvents.map((event) => (
+                                                        <div
+                                                            key={event.id}
+                                                            className="group flex items-center gap-3 p-3 rounded-xl border border-slate-100 hover:border-primary/30 hover:bg-slate-50 transition-all cursor-pointer"
+                                                            onClick={() => handleShareEvent(event)}
+                                                        >
+                                                            <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 shrink-0">
+                                                                {event.clubLogo ? (
+                                                                    <img src={event.clubLogo} alt="" className="w-full h-full object-cover" />
+                                                                ) : (
+                                                                    <div className="w-full h-full bg-slate-100 flex items-center justify-center">
+                                                                        <CalendarDays className="w-5 h-5 text-slate-400" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="text-sm font-bold text-slate-900 truncate">{event.title}</p>
+                                                                <div className="flex items-center gap-1.5 flex-wrap">
+                                                                    <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase">
+                                                                        {event.clubName}
+                                                                    </span>
+                                                                    <span className="text-[10px] text-slate-400">
+                                                                        {new Date(event.date || event.eventDate || event.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </TabsContent>
+                                    </div>
+                                </Tabs>
                             </SheetContent>
                         </Sheet>
                     </div>
@@ -315,8 +524,8 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                                             onClick={() => selectMention(user)}
                                             className={cn(
                                                 "w-full flex items-center px-4 py-2 rounded-xl transition-all text-left text-[13px] font-medium",
-                                                index === selectedMentionIndex 
-                                                    ? "bg-primary/10 text-primary font-bold" 
+                                                index === selectedMentionIndex
+                                                    ? "bg-primary/10 text-primary font-bold"
                                                     : "hover:bg-slate-50 text-slate-600"
                                             )}
                                         >
@@ -346,7 +555,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                             className={cn(
                                 "absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full flex items-center justify-center transition-all",
                                 message.trim() && !disabled && !isUploading
-                                    ? "bg-primary text-white" 
+                                    ? "bg-primary text-white"
                                     : "bg-slate-100 text-slate-300"
                             )}
                         >

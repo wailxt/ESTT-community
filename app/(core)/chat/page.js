@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { db, ref, onValue, push, set, serverTimestamp, update } from '@/lib/firebase';
+import { db, ref, onValue, push, set, serverTimestamp, update, query, limitToLast } from '@/lib/firebase';
 import ChatBubble from '@/components/features/chat/ChatBubble';
 import ChatInput from '@/components/features/chat/ChatInput';
 import { Loader2, Hash, Lock, Menu, Bell, Search, User as UserIcon, LogOut } from 'lucide-react';
@@ -30,7 +30,12 @@ export default function DiscussionPage() {
     const [loading, setLoading] = useState(true);
     const [replyingTo, setReplyingTo] = useState(null);
     const [typingUsers, setTypingUsers] = useState({});
+    const [readStatuses, setReadStatuses] = useState({});
+    const [messageLimit, setMessageLimit] = useState(100);
+    const [hasMore, setHasMore] = useState(true);
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const messagesEndRef = useRef(null);
+    const scrollContainerRef = useRef(null);
     const profilesListeners = useRef({});
 
     // Get room details based on user profile
@@ -90,8 +95,9 @@ export default function DiscussionPage() {
         if (!user || authLoading) return;
 
         const messagesRef = ref(db, `discussions/${roomId}/messages`);
+        const q = query(messagesRef, limitToLast(messageLimit));
 
-        const unsubscribe = onValue(messagesRef, (snapshot) => {
+        const unsubscribe = onValue(q, (snapshot) => {
             if (snapshot.exists()) {
                 const data = snapshot.val();
                 const messageList = Object.entries(data).map(([id, msg]) => ({
@@ -100,6 +106,7 @@ export default function DiscussionPage() {
                 })).sort((a, b) => a.timestamp - b.timestamp);
 
                 setMessages(messageList);
+                setHasMore(messageList.length >= messageLimit);
 
                 // Fetch profiles for all unique users in the room
                 const uniqueUserIds = [...new Set(messageList.map(msg => msg.userId))];
@@ -118,9 +125,12 @@ export default function DiscussionPage() {
                 });
             } else {
                 setMessages([]);
+                setHasMore(false);
             }
             setLoading(false);
-            scrollToBottom();
+            if (isInitialLoad) {
+                scrollToBottom();
+            }
         });
 
         const typingRef = ref(db, `discussions/${roomId}/typing`);
@@ -128,11 +138,36 @@ export default function DiscussionPage() {
             setTypingUsers(snapshot.val() || {});
         });
 
+        const readStatusRef = ref(db, `discussions/${roomId}/readStatus`);
+        const unsubscribeReadStatus = onValue(readStatusRef, (snapshot) => {
+            setReadStatuses(snapshot.val() || {});
+        });
+
         return () => {
             unsubscribe();
             unsubscribeTyping();
+            unsubscribeReadStatus();
         };
-    }, [user, authLoading, roomId]);
+    }, [user, authLoading, roomId, messageLimit]);
+
+    const handleLoadMore = () => {
+        setIsInitialLoad(false);
+        // Save current scroll height to restore position
+        if (scrollContainerRef.current) {
+            const previousHeight = scrollContainerRef.current.scrollHeight;
+            setMessageLimit(prev => prev + 100);
+            
+            // Restore scroll after content update
+            setTimeout(() => {
+                if (scrollContainerRef.current) {
+                    const newHeight = scrollContainerRef.current.scrollHeight;
+                    scrollContainerRef.current.scrollTop = newHeight - previousHeight;
+                }
+            }, 100);
+        } else {
+            setMessageLimit(prev => prev + 20);
+        }
+    };
 
     // Combined cleanup for all listeners
     useEffect(() => {
@@ -142,14 +177,30 @@ export default function DiscussionPage() {
         };
     }, []);
 
+    // Read Tracking logic
+    useEffect(() => {
+        if (!user || !roomId || messages.length === 0) return;
+
+        const lastMessage = messages[messages.length - 1];
+        const userReadRef = ref(db, `discussions/${roomId}/readStatus/${user.uid}`);
+
+        // Only update if our last read message is different
+        if (readStatuses[user.uid]?.lastMessageId !== lastMessage.id) {
+            set(userReadRef, {
+                lastMessageId: lastMessage.id,
+                timestamp: serverTimestamp()
+            });
+        }
+    }, [messages, user, roomId]);
+
     const scrollToBottom = () => {
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 100);
     };
 
-    const handleSendMessage = async (text, imageUrl = null, sharedResource = null) => {
-        if (!user || (!text?.trim() && !imageUrl && !sharedResource)) return;
+    const handleSendMessage = async (text, imageUrl = null, sharedResource = null, extraData = {}, sharedEvent = null) => {
+        if (!user && !text?.trim() && !imageUrl && !sharedResource && !sharedEvent && Object.keys(extraData).length === 0) return;
 
         const messagesRef = ref(db, `discussions/${roomId}/messages`);
         const newMessageRef = push(messagesRef);
@@ -158,6 +209,8 @@ export default function DiscussionPage() {
             text: text || "",
             imageUrl,
             sharedResource,
+            sharedEvent,
+            ...extraData,
             userId: user.uid,
             timestamp: serverTimestamp(),
             ...(replyingTo && {
@@ -400,8 +453,23 @@ export default function DiscussionPage() {
             </div>
 
             {/* Chat Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-10 md:px-12 scroll-smooth bg-white custom-scrollbar overscroll-contain">
+            <div 
+                ref={scrollContainerRef}
+                className="flex-1 overflow-y-auto px-6 py-10 md:px-12 scroll-smooth bg-white custom-scrollbar overscroll-contain"
+            >
                 <div className="max-w-4xl mx-auto">
+                    {hasMore && messages.length >= messageLimit && (
+                        <div className="flex justify-center pb-8">
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                onClick={handleLoadMore}
+                                className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-primary hover:bg-primary/5 transition-all px-6 py-2 rounded-full border border-slate-100 shadow-sm"
+                            >
+                                Voir les messages plus anciens
+                            </Button>
+                        </div>
+                    )}
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
@@ -433,6 +501,8 @@ export default function DiscussionPage() {
                                             key={msg.id}
                                             message={msg}
                                             profile={profiles[msg.userId] || msg.profile}
+                                            profiles={profiles}
+                                            readStatuses={readStatuses}
                                             isOwn={msg.userId === user.uid}
                                             currentUserId={user.uid}
                                             onReact={(emoji) => handleReact(msg.id, emoji)}
