@@ -1,3 +1,10 @@
+## [1.18.6](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.5...v1.18.6) (2026-04-12)
+
+
+### Bug Fixes
+
+* fixing encryption problems in DM messages ([60d4953](https://github.com/abdelhakim-sahifa/ESTT-community/commit/60d49534aecbc6e3581f160da7d08cf5b097d9cc))
+
 ## [1.18.5](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.4...v1.18.5) (2026-04-12)
 
 ## [1.18.4](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.3...v1.18.4) (2026-04-12)
