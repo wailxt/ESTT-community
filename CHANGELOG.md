@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.9...v1.19.0) (2026-04-15)
+
+
+### Features
+
+* implementing Push Notification System ([9ba7a93](https://github.com/abdelhakim-sahifa/ESTT-community/commit/9ba7a934f359950f7d616944a6498b661ad84f40))
+
 ## [1.18.9](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.8...v1.18.9) (2026-04-12)
 
 ## [1.18.8](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.7...v1.18.8) (2026-04-12)

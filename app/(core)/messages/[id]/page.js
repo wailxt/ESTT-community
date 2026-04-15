@@ -7,7 +7,7 @@ import { db, ref, onValue, push, set, serverTimestamp, update, query, limitToLas
 import ChatBubble from '@/components/features/chat/ChatBubble';
 import ChatInput from '@/components/features/chat/ChatInput';
 import ChatTermsDialog from '@/components/features/chat/ChatTermsDialog';
-import { Loader2, ArrowLeft, MoreVertical, Phone, Video, Info } from 'lucide-react';
+import { Loader2, ArrowLeft, Bell, BellOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { onDisconnect, remove } from 'firebase/database';
 import { X, Lock, ShieldCheck, Gem } from 'lucide-react';
@@ -15,10 +15,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getSharedKey, encryptText, decryptText } from '@/lib/crypto';
+import { useNotifications } from '@/context/NotificationContext';
 
 export default function DirectMessagePage() {
     const { id: recipientId } = useParams();
     const { user, profile: currentUserProfile, loading: authLoading } = useAuth();
+    const { isSupported, permission, requestPermission, notifyDM } = useNotifications();
     const router = useRouter();
     
     const [messages, setMessages] = useState([]);
@@ -37,6 +39,8 @@ export default function DirectMessagePage() {
     const scrollContainerRef = useRef(null);
     const profilesListeners = useRef({});
     const [sharedKey, setSharedKey] = useState(null);
+    // Track last notified DM so we don't spam
+    const lastNotifiedMsgIdRef = useRef(null);
 
     // Unique Room ID for 1-on-1 interaction
     const roomId = user && recipientId 
@@ -136,6 +140,24 @@ export default function DirectMessagePage() {
                 const sortedList = messageList.sort((a, b) => a.timestamp - b.timestamp);
                 setMessages(sortedList);
                 setHasMore(sortedList.length >= messageLimit);
+
+                // ── DM notification ──────────────────────────────────────
+                if (sortedList.length > 0 && document.visibilityState !== 'visible') {
+                    const latestMsg = sortedList[sortedList.length - 1];
+                    if (
+                        latestMsg.userId === recipientId &&
+                        latestMsg.id !== lastNotifiedMsgIdRef.current
+                    ) {
+                        lastNotifiedMsgIdRef.current = latestMsg.id;
+                        const senderName = recipientProfile
+                            ? `${recipientProfile.firstName} ${recipientProfile.lastName || ''}`.trim()
+                            : 'Message';
+                        // Use decrypted text as preview (latestMsg.text already decrypted above)
+                        const preview = latestMsg.text || '';
+                        notifyDM(senderName, preview, `/messages/${recipientId}`);
+                    }
+                }
+                // ──────────────────────────────────────────────────────────
 
                 // Fetch profiles for users in this chat (mostly just the sender/receiver)
                 const uniqueUserIds = [...new Set(messageList.map(msg => msg.userId))];
@@ -381,12 +403,41 @@ export default function DirectMessagePage() {
                             </div>
                         </Link>
                     </div>
-                    {sharedKey && (
-                        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
-                            <Lock className="w-3 h-3 text-emerald-600" />
-                            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Chiffré</span>
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {sharedKey && (
+                            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
+                                <Lock className="w-3 h-3 text-emerald-600" />
+                                <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Chiffré</span>
+                            </div>
+                        )}
+
+                        {/* Notification Bell */}
+                        {isSupported && (
+                            <button
+                                onClick={requestPermission}
+                                title={
+                                    permission === 'granted'
+                                        ? 'Notifications activées'
+                                        : permission === 'denied'
+                                        ? 'Notifications bloquées par le navigateur'
+                                        : 'Activer les notifications'
+                                }
+                                className={`p-2 rounded-full transition-all ${
+                                    permission === 'granted'
+                                        ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                                        : permission === 'denied'
+                                        ? 'text-slate-300 cursor-not-allowed'
+                                        : 'text-slate-400 hover:text-primary hover:bg-primary/5'
+                                }`}
+                                disabled={permission === 'denied'}
+                            >
+                                {permission === 'denied'
+                                    ? <BellOff className="w-4 h-4" />
+                                    : <Bell className="w-4 h-4" fill={permission === 'granted' ? 'currentColor' : 'none'} />
+                                }
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
