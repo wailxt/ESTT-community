@@ -8,6 +8,7 @@ import ChatInput from '@/components/features/chat/ChatInput';
 import ChatTermsDialog from '@/components/features/chat/ChatTermsDialog';
 import { Loader2, Hash, Lock, Menu, Bell, BellOff, Search, User as UserIcon, LogOut } from 'lucide-react';
 import { useNotifications } from '@/context/NotificationContext';
+import { notifyMention as rawNotifyMention } from '@/lib/browserNotifications';
 import { cn, getUserLevel } from '@/lib/utils';
 import { db as staticData } from '@/lib/data';
 import { onDisconnect } from 'firebase/database';
@@ -26,7 +27,7 @@ import {
 
 export default function DiscussionPage() {
     const { user, profile, loading: authLoading, signOut } = useAuth();
-    const { isSupported, permission, requestPermission, notifyMention } = useNotifications();
+    const { isSupported, permission, requestPermission } = useNotifications();
     const [messages, setMessages] = useState([]);
     const [profiles, setProfiles] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -45,6 +46,13 @@ export default function DiscussionPage() {
     // Mirror profiles state in a ref so Firebase closures always see fresh data
     const profilesRef = useRef({});
     useEffect(() => { profilesRef.current = profiles; }, [profiles]);
+
+    // Auto-request notification permission when entering the chat
+    useEffect(() => {
+        if (isSupported && permission === 'default') {
+            requestPermission();
+        }
+    }, [isSupported, permission, requestPermission]);
 
     // Get room details based on user profile
     const filiere = profile?.filiere?.toLowerCase() || 'general';
@@ -128,11 +136,10 @@ export default function DiscussionPage() {
                         latestMsg.text?.includes(myMentionTag)
                     ) {
                         lastNotifiedMsgIdRef.current = latestMsg.id;
-                        const senderProfile = latestMsg.profile || {};
-                        const senderName = senderProfile.firstName
-                            ? `${senderProfile.firstName} ${senderProfile.lastName || ''}`.trim()
+                        const senderName = profilesRef.current[latestMsg.userId]
+                            ? `${profilesRef.current[latestMsg.userId].firstName} ${profilesRef.current[latestMsg.userId].lastName || ''}`.trim()
                             : 'Quelqu\'un';
-                        notifyMention(senderName, filiereName, latestMsg.text);
+                        rawNotifyMention(senderName, filiereName, latestMsg.text);
                     }
                 }
                 // ──────────────────────────────────────────────────────────

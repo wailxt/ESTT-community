@@ -16,11 +16,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { getSharedKey, encryptText, decryptText } from '@/lib/crypto';
 import { useNotifications } from '@/context/NotificationContext';
+import { notifyDM as rawNotifyDM } from '@/lib/browserNotifications';
 
 export default function DirectMessagePage() {
     const { id: recipientId } = useParams();
     const { user, profile: currentUserProfile, loading: authLoading } = useAuth();
-    const { isSupported, permission, requestPermission, notifyDM } = useNotifications();
+    const { isSupported, permission, requestPermission } = useNotifications();
     const router = useRouter();
     
     const [messages, setMessages] = useState([]);
@@ -41,6 +42,13 @@ export default function DirectMessagePage() {
     const [sharedKey, setSharedKey] = useState(null);
     // Track last notified DM so we don't spam
     const lastNotifiedMsgIdRef = useRef(null);
+
+    // Auto-request notification permission when entering the DM
+    useEffect(() => {
+        if (isSupported && permission === 'default') {
+            requestPermission();
+        }
+    }, [isSupported, permission, requestPermission]);
 
     // Unique Room ID for 1-on-1 interaction
     const roomId = user && recipientId 
@@ -152,9 +160,8 @@ export default function DirectMessagePage() {
                         const senderName = recipientProfile
                             ? `${recipientProfile.firstName} ${recipientProfile.lastName || ''}`.trim()
                             : 'Message';
-                        // Use decrypted text as preview (latestMsg.text already decrypted above)
                         const preview = latestMsg.text || '';
-                        notifyDM(senderName, preview, `/messages/${recipientId}`);
+                        rawNotifyDM(senderName, preview, `/messages/${recipientId}`);
                     }
                 }
                 // ──────────────────────────────────────────────────────────
