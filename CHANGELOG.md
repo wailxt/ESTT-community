@@ -1,3 +1,10 @@
+## [1.19.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.1...v1.19.2) (2026-04-15)
+
+
+### Bug Fixes
+
+* Push Notification utility ([99426a2](https://github.com/abdelhakim-sahifa/ESTT-community/commit/99426a25126a2c69dbdd80d5e62b3665bb188aa6))
+
 ## [1.19.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.0...v1.19.1) (2026-04-15)
 
 # [1.19.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.18.9...v1.19.0) (2026-04-15)
