@@ -5,6 +5,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { AuthProvider } from '@/context/AuthContext';
 import { DialogProvider } from '@/context/DialogContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import LocalDevServiceWorkerCleanup from '@/components/providers/LocalDevServiceWorkerCleanup';
 import { defaultMetadata } from '@/lib/metadata';
 
@@ -62,13 +63,15 @@ export default function RootLayout({ children }) {
             <body className={`font-sans ${canela.variable} antialiased`} suppressHydrationWarning={true}>
                 <DialogProvider>
                     <AuthProvider>
-                        <LocalDevServiceWorkerCleanup />
-                        <Header />
-                        {children}
-                        <Footer />
-                        <div id="spinner-overlay" className="spinner-overlay hidden" aria-hidden="true">
-                            <div className="spinner" role="status" aria-label="Chargement"></div>
-                        </div>
+                        <NotificationProvider>
+                            <LocalDevServiceWorkerCleanup />
+                            <Header />
+                            {children}
+                            <Footer />
+                            <div id="spinner-overlay" className="spinner-overlay hidden" aria-hidden="true">
+                                <div className="spinner" role="status" aria-label="Chargement"></div>
+                            </div>
+                        </NotificationProvider>
                     </AuthProvider>
                 </DialogProvider>
             </body>

@@ -6,7 +6,8 @@ import { db, ref, onValue, push, set, serverTimestamp, update, query, limitToLas
 import ChatBubble from '@/components/features/chat/ChatBubble';
 import ChatInput from '@/components/features/chat/ChatInput';
 import ChatTermsDialog from '@/components/features/chat/ChatTermsDialog';
-import { Loader2, Hash, Lock, Menu, Bell, Search, User as UserIcon, LogOut } from 'lucide-react';
+import { Loader2, Hash, Lock, Menu, Bell, BellOff, Search, User as UserIcon, LogOut } from 'lucide-react';
+import { useNotifications } from '@/context/NotificationContext';
 import { cn, getUserLevel } from '@/lib/utils';
 import { db as staticData } from '@/lib/data';
 import { onDisconnect } from 'firebase/database';
@@ -25,6 +26,7 @@ import {
 
 export default function DiscussionPage() {
     const { user, profile, loading: authLoading, signOut } = useAuth();
+    const { isSupported, permission, requestPermission, notifyMention } = useNotifications();
     const [messages, setMessages] = useState([]);
     const [profiles, setProfiles] = useState({});
     const [onlineUsers, setOnlineUsers] = useState([]);
@@ -38,6 +40,11 @@ export default function DiscussionPage() {
     const messagesEndRef = useRef(null);
     const scrollContainerRef = useRef(null);
     const profilesListeners = useRef({});
+    // Track last notified message so we don't fire duplicates
+    const lastNotifiedMsgIdRef = useRef(null);
+    // Mirror profiles state in a ref so Firebase closures always see fresh data
+    const profilesRef = useRef({});
+    useEffect(() => { profilesRef.current = profiles; }, [profiles]);
 
     // Get room details based on user profile
     const filiere = profile?.filiere?.toLowerCase() || 'general';
@@ -108,6 +115,27 @@ export default function DiscussionPage() {
 
                 setMessages(messageList);
                 setHasMore(messageList.length >= messageLimit);
+
+                // ── @mention notification ──────────────────────────────────
+                // Only fire when tab is backgrounded and we have a profile
+                if (profile && document.visibilityState !== 'visible') {
+                    const latestMsg = messageList[messageList.length - 1];
+                    const myMentionTag = `@${profile.firstName}_${profile.lastName}`;
+                    if (
+                        latestMsg &&
+                        latestMsg.id !== lastNotifiedMsgIdRef.current &&
+                        latestMsg.userId !== user.uid &&
+                        latestMsg.text?.includes(myMentionTag)
+                    ) {
+                        lastNotifiedMsgIdRef.current = latestMsg.id;
+                        const senderProfile = latestMsg.profile || {};
+                        const senderName = senderProfile.firstName
+                            ? `${senderProfile.firstName} ${senderProfile.lastName || ''}`.trim()
+                            : 'Quelqu\'un';
+                        notifyMention(senderName, filiereName, latestMsg.text);
+                    }
+                }
+                // ──────────────────────────────────────────────────────────
 
                 // Fetch profiles for all unique users in the room
                 const uniqueUserIds = [...new Set(messageList.map(msg => msg.userId))];
@@ -426,8 +454,37 @@ export default function DiscussionPage() {
                         </div>
                     </div>
 
-                    {/* Facepile UI */}
-                    <div className="flex items-center">
+                    {/* Right side: Facepile + Bell */}
+                    <div className="flex items-center gap-2">
+
+                        {/* Notification Bell */}
+                        {isSupported && (
+                            <button
+                                onClick={requestPermission}
+                                title={
+                                    permission === 'granted'
+                                        ? 'Notifications activées'
+                                        : permission === 'denied'
+                                        ? 'Notifications bloquées par le navigateur'
+                                        : 'Activer les notifications'
+                                }
+                                className={`p-2 rounded-full transition-all ${
+                                    permission === 'granted'
+                                        ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                                        : permission === 'denied'
+                                        ? 'text-slate-300 cursor-not-allowed'
+                                        : 'text-slate-400 hover:text-primary hover:bg-primary/5'
+                                }`}
+                                disabled={permission === 'denied'}
+                            >
+                                {permission === 'denied'
+                                    ? <BellOff className="w-4 h-4" />
+                                    : <Bell className="w-4 h-4" fill={permission === 'granted' ? 'currentColor' : 'none'} />
+                                }
+                            </button>
+                        )}
+
+                        {/* Facepile */}
                         <div className="flex -space-x-2 md:-space-x-3 overflow-hidden">
                             {onlineProfiles.slice(0, facepileLimit).map((p, i) => (
                                 <div
