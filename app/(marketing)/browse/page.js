@@ -13,7 +13,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Badge, Loader2, FileText, Video, ImageIcon, Link as LinkIcon, ArrowRight, FolderOpen, User, Star } from 'lucide-react';
+import { Badge, Loader2, FileText, Video, ImageIcon, Link as LinkIcon, ArrowRight, FolderOpen, User, Star, BookOpen, ClipboardList, FlaskConical, FileCheck, Layers } from 'lucide-react';
+
+const RESOURCE_CATEGORIES = [
+    { id: 'Cours', label: 'Cours', icon: <BookOpen className="w-5 h-5 text-blue-500" /> },
+    { id: 'TD', label: 'Travaux Dirigés (TD)', icon: <ClipboardList className="w-5 h-5 text-indigo-500" /> },
+    { id: 'TP', label: 'Travaux Pratiques (TP)', icon: <FlaskConical className="w-5 h-5 text-emerald-500" /> },
+    { id: 'Exam', label: 'Examens & Contrôles', icon: <FileCheck className="w-5 h-5 text-amber-500" /> },
+    { id: 'Autres', label: 'Autres Ressources', icon: <Layers className="w-5 h-5 text-slate-500" /> },
+];
 
 export default function BrowsePage() {
     const searchParams = useSearchParams();
@@ -167,6 +175,16 @@ export default function BrowsePage() {
         return staticDb.fields.find(f => f.id === fieldId)?.name || fieldId;
     };
 
+    const groupedResources = resources.reduce((acc, resource) => {
+        const type = resource.docType || 'Autres';
+        // Normalize type to match our categories
+        const normalizedType = RESOURCE_CATEGORIES.find(c => c.id === type) ? type : 'Autres';
+        
+        if (!acc[normalizedType]) acc[normalizedType] = [];
+        acc[normalizedType].push(resource);
+        return acc;
+    }, {});
+
     const renderRating = (resource) => {
         const average = resource.ratingAverage;
         const count = resource.ratingCount || 0;
@@ -188,6 +206,53 @@ export default function BrowsePage() {
                     {rounded.toFixed(1)} ({count})
                 </span>
             </div>
+        );
+    };
+
+    const renderResourceCard = (resource) => {
+        const rawUrl = resource.url || resource.link || resource.file;
+        const validUrl = rawUrl ? ensureProtocol(rawUrl) : null;
+
+        return (
+            <Link key={resource.id} href={`/resource/${resource.id}`} className="group flex flex-col h-full border border-slate-200 rounded-xl hover:border-primary/50 transition-all hover:shadow-md bg-white p-5 cursor-pointer">
+                <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2.5 bg-slate-50 rounded-xl text-slate-400 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                        {getResourceIcon(resource.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors line-clamp-2 leading-snug">{resource.title}</h3>
+                        <div className="flex flex-col mt-1.5 gap-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] font-bold uppercase py-0.5 px-1.5 bg-slate-100 text-slate-500 rounded">{resource.type}</span>
+                                {resource.docType && (
+                                    <span className="text-[10px] font-bold uppercase py-0.5 px-1.5 bg-primary/10 text-primary rounded">{resource.docType}</span>
+                                )}
+                            </div>
+                            {renderRating(resource)}
+                        </div>
+                    </div>
+                </div>
+
+                {resource.description && (
+                    <p className="text-sm text-slate-500 line-clamp-2 mb-4 italic">"{resource.description}"</p>
+                )}
+
+                <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                    {resource.professor && (
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                            <User className="w-3.5 h-3.5 text-slate-300" />
+                            <span className="truncate max-w-[120px]">{resource.professor}</span>
+                        </div>
+                    )}
+                    {validUrl ? (
+                        <span className="text-xs font-bold text-primary group-hover:underline ml-auto flex items-center gap-1 bg-primary/5 px-2.5 py-1 rounded-full">
+                            Ouvrir <ArrowRight className="w-3 h-3" />
+                        </span>
+                    ) : (
+                        <span className="text-xs text-slate-300 ml-auto">Non disponible</span>
+                    )}
+                </div>
+            </Link>
         );
     };
 
@@ -300,76 +365,72 @@ export default function BrowsePage() {
                             </Link>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {/* Student Ad Card */}
+                        <div className="space-y-16">
+                            {/* Student Ad Card - Hero Position if available */}
                             {ads.length > 0 && (
-                                <div className="group border border-slate-200 rounded-xl overflow-hidden hover:border-primary/50 transition-colors flex flex-col h-full">
-                                    <div className="relative aspect-video overflow-hidden bg-slate-100">
-                                        <img src={ads[0].url} alt="" className="w-full h-full object-cover" />
-                                        <div className="absolute top-3 left-3">
-                                            <span className="inline-block bg-white/90 text-slate-700 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md">Focus</span>
+                                <div className="bg-gradient-to-r from-primary/5 to-transparent border border-primary/10 rounded-2xl overflow-hidden p-6 relative">
+                                    <div className="flex flex-col md:flex-row gap-8 items-center">
+                                        <div className="w-full md:w-1/3 aspect-video relative rounded-xl overflow-hidden shadow-2xl border-4 border-white">
+                                            <img src={ads[0].url} alt="" className="w-full h-full object-cover" />
+                                            <div className="absolute top-3 left-3">
+                                                <Badge className="bg-white/90 text-primary hover:bg-white text-[10px] font-black uppercase shadow-sm">Focus</Badge>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="p-5 flex flex-col flex-1">
-                                        <h3 className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors mb-1 line-clamp-1">{ads[0].title}</h3>
-                                        <p className="text-slate-500 text-sm line-clamp-2 mb-4">{ads[0].description}</p>
-                                        <div className="mt-auto pt-4 border-t border-slate-100">
+                                        <div className="flex-1 space-y-4">
+                                            <div>
+                                                <h3 className="text-2xl font-black text-slate-900 mb-2">{ads[0].title}</h3>
+                                                <p className="text-slate-600 text-lg leading-relaxed">{ads[0].description}</p>
+                                            </div>
                                             {ads[0].link && (
-                                                <a href={ads[0].link} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-primary hover:underline">
-                                                    Découvrir →
+                                                <a href={ads[0].link} target="_blank" rel="noopener noreferrer">
+                                                    <Button variant="default" className="rounded-full shadow-lg hover:shadow-primary/25 transition-all">
+                                                        Découvrir l'annonce <ArrowRight className="ml-2 w-4 h-4" />
+                                                    </Button>
                                                 </a>
                                             )}
                                         </div>
                                     </div>
+                                    <div className="absolute top-4 right-4 opacity-5">
+                                        <Star className="w-24 h-24 fill-primary text-primary rotate-12" />
+                                    </div>
                                 </div>
                             )}
 
-                            {resources.map((resource) => {
-                                const rawUrl = resource.url || resource.link || resource.file;
-                                const validUrl = rawUrl ? ensureProtocol(rawUrl) : null;
+                            {RESOURCE_CATEGORIES.map((category) => {
+                                const categoryResources = groupedResources[category.id] || [];
+                                if (categoryResources.length === 0) return null;
 
                                 return (
-                                    <Link key={resource.id} href={`/resource/${resource.id}`} className="group flex flex-col h-full border border-slate-200 rounded-xl hover:border-primary/50 transition-colors bg-white p-5 cursor-pointer">
-                                        <div className="flex items-start gap-3 mb-3">
-                                            <div className="p-2 bg-slate-100 rounded-lg text-slate-500 shrink-0 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                                                {getResourceIcon(resource.type)}
+                                    <div key={category.id} className="space-y-6">
+                                        <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                                            <div className="p-2 bg-slate-50 rounded-lg">
+                                                {category.icon}
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-base font-bold text-slate-900 group-hover:text-primary transition-colors line-clamp-2 leading-snug">{resource.title}</h3>
-                                                <div className="flex flex-col mt-1.5 gap-1">
-                                                    <div className="flex flex-wrap gap-1">
-                                                        <span className="text-[10px] font-bold uppercase text-slate-400">{resource.type}</span>
-                                                        {resource.docType && (
-                                                            <span className="text-[10px] font-bold uppercase text-primary">· {resource.docType}</span>
-                                                        )}
-                                                    </div>
-                                                    {renderRating(resource)}
-                                                </div>
-                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-800">{category.label}</h3>
                                         </div>
-
-                                        {resource.description && (
-                                            <p className="text-sm text-slate-500 line-clamp-2 mb-3">{resource.description}</p>
-                                        )}
-
-                                        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                                            {resource.professor && (
-                                                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                                                    <User className="w-3 h-3" />
-                                                    <span className="truncate">{resource.professor}</span>
-                                                </div>
-                                            )}
-                                            {validUrl ? (
-                                                <span className="text-xs font-bold text-primary group-hover:underline ml-auto flex items-center gap-1">
-                                                    Ouvrir <ArrowRight className="w-3 h-3" />
-                                                </span>
-                                            ) : (
-                                                <span className="text-xs text-slate-300 ml-auto">Non disponible</span>
-                                            )}
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {categoryResources.map((resource) => renderResourceCard(resource))}
                                         </div>
-                                    </Link>
+                                    </div>
                                 );
                             })}
+
+                            {/* Handle remaining types not in official list */}
+                            {Object.keys(groupedResources).filter(type => !RESOURCE_CATEGORIES.find(c => c.id === type) && type !== 'Autres').map(type => (
+                                <div key={type} className="space-y-6">
+                                    <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+                                        <div className="p-2 bg-slate-50 rounded-lg">
+                                            <Layers className="w-5 h-5 text-slate-400" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-800">{type}</h3>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {groupedResources[type].map((resource) => renderResourceCard(resource))}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </section>
