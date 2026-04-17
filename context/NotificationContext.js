@@ -62,17 +62,17 @@ export function NotificationProvider({ children }) {
     /**
      * @mention notification.
      */
-    const handleNotifyMention = useCallback((mentionedBy, roomName, preview) => {
+    const handleNotifyMention = useCallback((mentionedBy, roomName, preview, photoUrl) => {
         if (!isSupported || permission !== 'granted') return null;
-        return notifyMention(mentionedBy, roomName, preview);
+        return notifyMention(mentionedBy, roomName, preview, photoUrl);
     }, [isSupported, permission]);
 
     /**
      * DM notification.
      */
-    const handleNotifyDM = useCallback((senderName, preview, conversationUrl) => {
+    const handleNotifyDM = useCallback((senderName, preview, conversationUrl, photoUrl) => {
         if (!isSupported || permission !== 'granted') return null;
-        return notifyDM(senderName, preview, conversationUrl);
+        return notifyDM(senderName, preview, conversationUrl, photoUrl);
     }, [isSupported, permission]);
 
     /**

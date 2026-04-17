@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { db, ref, onValue, get } from '@/lib/firebase';
 import ChatTermsDialog from '@/components/features/chat/ChatTermsDialog';
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { getSharedKey, decryptText } from '@/lib/crypto';
 import { ShieldCheck, Lock, Gem } from 'lucide-react';
+import { notifyDM as rawNotifyDM } from '@/lib/browserNotifications';
 
 export default function MessagesHub() {
     const { user, profile: currentUserProfile, loading: authLoading } = useAuth();
@@ -19,6 +20,11 @@ export default function MessagesHub() {
     const [profiles, setProfiles] = useState({});
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
+
+    const lastNotifiedMsgIdsRef = useRef({});
+    const profilesRef = useRef(profiles);
+
+    useEffect(() => { profilesRef.current = profiles; }, [profiles]);
 
     useEffect(() => {
         if (!user || authLoading) return;
@@ -49,6 +55,34 @@ export default function MessagesHub() {
 
                 const sortedList = listWithDecrypted.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
                 setConversations(sortedList);
+
+                // --- Global DM Notification in Hub ---
+                if (!document.hasFocus()) {
+                    sortedList.forEach(conv => {
+                        // Check if it's unread, has a message, and wasn't sent by the current user
+                        if (conv.unread && conv.lastMessageId && conv.lastMessageSenderId !== user.uid) {
+                            if (lastNotifiedMsgIdsRef.current[conv.id] !== conv.lastMessageId) {
+                                lastNotifiedMsgIdsRef.current[conv.id] = conv.lastMessageId;
+
+                                const otherId = conv.otherUserId || conv.id;
+                                
+                                (async () => {
+                                    let p = profilesRef.current[otherId];
+                                    if (!p) {
+                                        const snap = await get(ref(db, `users/${otherId}`));
+                                        if (snap.exists()) p = snap.val();
+                                    }
+                                    
+                                    const senderName = p ? `${p.firstName} ${p.lastName || ''}`.trim() : 'Message';
+                                    const photoUrl = p?.photoUrl || null;
+    
+                                    rawNotifyDM(senderName, conv.lastMessage || 'Nouveau message', `/messages/${otherId}`, photoUrl);
+                                })();
+                            }
+                        }
+                    });
+                }
+                // ------------------------------------
 
                 // Fetch profiles for users we don't have yet
                 sortedList.forEach(conv => {
@@ -105,7 +139,7 @@ export default function MessagesHub() {
         <main className="min-h-screen bg-white md:bg-slate-50/50">
             <ChatTermsDialog />
             <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
-                
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
@@ -143,7 +177,7 @@ export default function MessagesHub() {
                                 {searchQuery ? "Aucun résultat trouvé" : "Pas encore de messages"}
                             </h2>
                             <p className="text-slate-500 text-sm max-w-xs mx-auto mb-8">
-                                {searchQuery 
+                                {searchQuery
                                     ? `Nous n'avons trouvé aucune conversation correspondant à "${searchQuery}".`
                                     : "Vous n'avez pas encore de conversations privées. Visitez le profil d'un membre pour lui envoyer un message !"}
                             </p>
@@ -200,11 +234,11 @@ export default function MessagesHub() {
                                                 )}>
                                                     {p ? `${p.firstName} ${p.lastName}` : "Utilisateur..."}
                                                     {p?.verifiedEmail && (
-                                                        <span 
+                                                        <span
                                                             className={cn(
                                                                 "material-symbols-outlined select-none !text-[13px]",
                                                                 p?.role === 'admin' ? "text-yellow-500" : "text-emerald-500"
-                                                            )} 
+                                                            )}
                                                             style={{ fontVariationSettings: "'FILL' 1" }}
                                                         >
                                                             verified

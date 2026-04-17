@@ -42,6 +42,10 @@ export default function DirectMessagePage() {
     const [sharedKey, setSharedKey] = useState(null);
     // Track last notified DM so we don't spam
     const lastNotifiedMsgIdRef = useRef(null);
+    
+    // Mirror recipientProfile in a ref to avoid stale closures in Firebase listeners
+    const recipientProfileRef = useRef(null);
+    useEffect(() => { recipientProfileRef.current = recipientProfile; }, [recipientProfile]);
 
     // Auto-request notification permission when entering the DM
     useEffect(() => {
@@ -150,18 +154,28 @@ export default function DirectMessagePage() {
                 setHasMore(sortedList.length >= messageLimit);
 
                 // ── DM notification ──────────────────────────────────────
-                if (sortedList.length > 0 && document.visibilityState !== 'visible') {
+                if (sortedList.length > 0 && !document.hasFocus()) {
                     const latestMsg = sortedList[sortedList.length - 1];
                     if (
                         latestMsg.userId === recipientId &&
                         latestMsg.id !== lastNotifiedMsgIdRef.current
                     ) {
                         lastNotifiedMsgIdRef.current = latestMsg.id;
-                        const senderName = recipientProfile
-                            ? `${recipientProfile.firstName} ${recipientProfile.lastName || ''}`.trim()
-                            : 'Message';
-                        const preview = latestMsg.text || '';
-                        rawNotifyDM(senderName, preview, `/messages/${recipientId}`);
+                        
+                        (async () => {
+                            let senderProfile = recipientProfileRef.current;
+                            if (!senderProfile) {
+                                const snap = await get(ref(db, `users/${recipientId}`));
+                                if (snap.exists()) senderProfile = snap.val();
+                            }
+                            
+                            const senderName = senderProfile
+                                ? `${senderProfile.firstName} ${senderProfile.lastName || ''}`.trim()
+                                : 'Message';
+                            const photoUrl = senderProfile?.photoUrl || null;
+                            const preview = latestMsg.text || '';
+                            rawNotifyDM(senderName, preview, `/messages/${recipientId}`, photoUrl);
+                        })();
                     }
                 }
                 // ──────────────────────────────────────────────────────────

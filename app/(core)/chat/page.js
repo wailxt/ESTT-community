@@ -47,6 +47,9 @@ export default function DiscussionPage() {
     const profilesRef = useRef({});
     useEffect(() => { profilesRef.current = profiles; }, [profiles]);
 
+    const profileRef = useRef(profile);
+    useEffect(() => { profileRef.current = profile; }, [profile]);
+
     // Auto-request notification permission when entering the chat
     useEffect(() => {
         if (isSupported && permission === 'default') {
@@ -59,6 +62,9 @@ export default function DiscussionPage() {
     const startYear = profile?.startYear || 'unknown';
     const roomId = `${filiere}_${startYear}`;
     const filiereName = staticData.fields.find(f => f.id === filiere)?.name || profile?.filiere || 'Général';
+
+    const filiereNameRef = useRef(filiereName);
+    useEffect(() => { filiereNameRef.current = filiereName; }, [filiereName]);
 
     // Presence Tracking Effect
     useEffect(() => {
@@ -125,10 +131,11 @@ export default function DiscussionPage() {
                 setHasMore(messageList.length >= messageLimit);
 
                 // ── @mention notification ──────────────────────────────────
-                // Only fire when tab is backgrounded and we have a profile
-                if (profile && document.visibilityState !== 'visible') {
+                // Only fire when window is not focused and we have a profile
+                if (profileRef.current && !document.hasFocus()) {
                     const latestMsg = messageList[messageList.length - 1];
-                    const myMentionTag = `@${profile.firstName}_${profile.lastName}`;
+                    const p = profileRef.current;
+                    const myMentionTag = `@${p.firstName}_${p.lastName}`;
                     if (
                         latestMsg &&
                         latestMsg.id !== lastNotifiedMsgIdRef.current &&
@@ -136,10 +143,20 @@ export default function DiscussionPage() {
                         latestMsg.text?.includes(myMentionTag)
                     ) {
                         lastNotifiedMsgIdRef.current = latestMsg.id;
-                        const senderName = profilesRef.current[latestMsg.userId]
-                            ? `${profilesRef.current[latestMsg.userId].firstName} ${profilesRef.current[latestMsg.userId].lastName || ''}`.trim()
-                            : 'Quelqu\'un';
-                        rawNotifyMention(senderName, filiereName, latestMsg.text);
+
+                        (async () => {
+                            let senderProfile = profilesRef.current[latestMsg.userId];
+                            if (!senderProfile) {
+                                const snap = await get(ref(db, `users/${latestMsg.userId}`));
+                                if (snap.exists()) senderProfile = snap.val();
+                            }
+
+                            const senderName = senderProfile
+                                ? `${senderProfile.firstName} ${senderProfile.lastName || ''}`.trim()
+                                : 'Quelqu\'un';
+                            const photoUrl = senderProfile?.photoUrl || null;
+                            rawNotifyMention(senderName, filiereNameRef.current, latestMsg.text, photoUrl);
+                        })();
                     }
                 }
                 // ──────────────────────────────────────────────────────────
@@ -192,7 +209,7 @@ export default function DiscussionPage() {
         if (scrollContainerRef.current) {
             const previousHeight = scrollContainerRef.current.scrollHeight;
             setMessageLimit(prev => prev + 100);
-            
+
             // Restore scroll after content update
             setTimeout(() => {
                 if (scrollContainerRef.current) {
@@ -472,16 +489,15 @@ export default function DiscussionPage() {
                                     permission === 'granted'
                                         ? 'Notifications activées'
                                         : permission === 'denied'
-                                        ? 'Notifications bloquées par le navigateur'
-                                        : 'Activer les notifications'
+                                            ? 'Notifications bloquées par le navigateur'
+                                            : 'Activer les notifications'
                                 }
-                                className={`p-2 rounded-full transition-all ${
-                                    permission === 'granted'
-                                        ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
-                                        : permission === 'denied'
+                                className={`p-2 rounded-full transition-all ${permission === 'granted'
+                                    ? 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                                    : permission === 'denied'
                                         ? 'text-slate-300 cursor-not-allowed'
                                         : 'text-slate-400 hover:text-primary hover:bg-primary/5'
-                                }`}
+                                    }`}
                                 disabled={permission === 'denied'}
                             >
                                 {permission === 'denied'
@@ -519,16 +535,16 @@ export default function DiscussionPage() {
             </div>
 
             {/* Chat Body */}
-            <div 
+            <div
                 ref={scrollContainerRef}
                 className="flex-1 overflow-y-auto px-6 py-10 md:px-12 scroll-smooth bg-white custom-scrollbar overscroll-contain"
             >
                 <div className="max-w-4xl mx-auto">
                     {hasMore && messages.length >= messageLimit && (
                         <div className="flex justify-center pb-8">
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
+                            <Button
+                                variant="ghost"
+                                size="sm"
                                 onClick={handleLoadMore}
                                 className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-primary hover:bg-primary/5 transition-all px-6 py-2 rounded-full border border-slate-100 shadow-sm"
                             >
