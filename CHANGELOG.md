@@ -1,3 +1,11 @@
+## [1.19.4](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.3...v1.19.4) (2026-04-17)
+
+
+### Bug Fixes
+
+* resolve bugs ([a8f0657](https://github.com/abdelhakim-sahifa/ESTT-community/commit/a8f0657db8d0cb69a9c973a16e44b687212eef5e))
+* resolve Web Puch Api ([5492d20](https://github.com/abdelhakim-sahifa/ESTT-community/commit/5492d203d9858e27248c871930026a026663a56b))
+
 ## [1.19.3](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.2...v1.19.3) (2026-04-16)
 
 ## [1.19.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.1...v1.19.2) (2026-04-15)
