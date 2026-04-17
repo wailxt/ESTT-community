@@ -13,11 +13,19 @@ import { Button } from '@/components/ui/button';
 import { getSharedKey, decryptText } from '@/lib/crypto';
 import { ShieldCheck, Lock, Gem } from 'lucide-react';
 import { notifyDM as rawNotifyDM } from '@/lib/browserNotifications';
+import {
+    ESTT_AI_AGENT_ID,
+    ESTT_AI_PROFILE,
+    buildEsttAiConversation,
+    isEsttAiAgent,
+} from '@/lib/estt-ai';
 
 export default function MessagesHub() {
     const { user, profile: currentUserProfile, loading: authLoading } = useAuth();
     const [conversations, setConversations] = useState([]);
-    const [profiles, setProfiles] = useState({});
+    const [profiles, setProfiles] = useState(() => ({
+        [ESTT_AI_AGENT_ID]: ESTT_AI_PROFILE,
+    }));
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -31,74 +39,77 @@ export default function MessagesHub() {
 
         const convRef = ref(db, `userConversations/${user.uid}`);
         const unsubscribe = onValue(convRef, async (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                const rawList = Object.entries(data).map(([id, conv]) => ({
-                    id,
-                    ...conv
-                }));
+            const data = snapshot.val() || {};
+            const rawList = Object.entries(data).map(([id, conv]) => ({
+                id,
+                ...conv
+            }));
 
-                // Decrypt last messages for preview
-                const listWithDecrypted = await Promise.all(rawList.map(async (conv) => {
-                    let lastMessage = conv.lastMessage;
-                    if (conv.ciphertext && conv.iv) {
-                        try {
-                            const key = await getSharedKey();
-                            const decrypted = await decryptText(conv.ciphertext, conv.iv, key);
-                            lastMessage = decrypted || lastMessage;
-                        } catch (err) {
-                            console.error("Failed to decrypt hub preview:", err);
-                        }
+            // Decrypt last messages for preview
+            const listWithDecrypted = await Promise.all(rawList.map(async (conv) => {
+                let lastMessage = conv.lastMessage;
+                if (conv.ciphertext && conv.iv) {
+                    try {
+                        const key = await getSharedKey();
+                        const decrypted = await decryptText(conv.ciphertext, conv.iv, key);
+                        lastMessage = decrypted || lastMessage;
+                    } catch (err) {
+                        console.error("Failed to decrypt hub preview:", err);
                     }
-                    return { ...conv, lastMessage };
-                }));
-
-                const sortedList = listWithDecrypted.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-                setConversations(sortedList);
-
-                // --- Global DM Notification in Hub ---
-                if (!document.hasFocus()) {
-                    sortedList.forEach(conv => {
-                        // Check if it's unread, has a message, and wasn't sent by the current user
-                        if (conv.unread && conv.lastMessageId && conv.lastMessageSenderId !== user.uid) {
-                            if (lastNotifiedMsgIdsRef.current[conv.id] !== conv.lastMessageId) {
-                                lastNotifiedMsgIdsRef.current[conv.id] = conv.lastMessageId;
-
-                                const otherId = conv.otherUserId || conv.id;
-                                
-                                (async () => {
-                                    let p = profilesRef.current[otherId];
-                                    if (!p) {
-                                        const snap = await get(ref(db, `users/${otherId}`));
-                                        if (snap.exists()) p = snap.val();
-                                    }
-                                    
-                                    const senderName = p ? `${p.firstName} ${p.lastName || ''}`.trim() : 'Message';
-                                    const photoUrl = p?.photoUrl || null;
-    
-                                    rawNotifyDM(senderName, conv.lastMessage || 'Nouveau message', `/messages/${otherId}`, photoUrl);
-                                })();
-                            }
-                        }
-                    });
                 }
-                // ------------------------------------
+                return { ...conv, lastMessage };
+            }));
 
-                // Fetch profiles for users we don't have yet
+            const storedAiConversation = listWithDecrypted.find((conv) => isEsttAiAgent(conv.id));
+            const sortedList = [
+                buildEsttAiConversation(storedAiConversation),
+                ...listWithDecrypted
+                    .filter((conv) => !isEsttAiAgent(conv.id))
+                    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)),
+            ];
+
+            setConversations(sortedList);
+
+            // --- Global DM Notification in Hub ---
+            if (!document.hasFocus()) {
                 sortedList.forEach(conv => {
-                    const otherId = conv.otherUserId || conv.id;
-                    if (otherId && !profiles[otherId]) {
-                        const pRef = ref(db, `users/${otherId}`);
-                        get(pRef).then(snap => {
-                            if (snap.exists()) {
-                                setProfiles(prev => ({ ...prev, [otherId]: snap.val() }));
-                            }
-                        });
+                    // Check if it's unread, has a message, and wasn't sent by the current user
+                    if (conv.unread && conv.lastMessageId && conv.lastMessageSenderId !== user.uid) {
+                        if (lastNotifiedMsgIdsRef.current[conv.id] !== conv.lastMessageId) {
+                            lastNotifiedMsgIdsRef.current[conv.id] = conv.lastMessageId;
+
+                            const otherId = conv.otherUserId || conv.id;
+
+                            (async () => {
+                                let p = profilesRef.current[otherId];
+                                if (!p && !isEsttAiAgent(otherId)) {
+                                    const snap = await get(ref(db, `users/${otherId}`));
+                                    if (snap.exists()) p = snap.val();
+                                }
+                                
+                                const senderName = p ? `${p.firstName} ${p.lastName || ''}`.trim() : 'Message';
+                                const photoUrl = p?.photoUrl || null;
+
+                                rawNotifyDM(senderName, conv.lastMessage || 'Nouveau message', `/messages/${otherId}`, photoUrl);
+                            })();
+                        }
                     }
                 });
-            } else {
-                setConversations([]);
             }
+            // ------------------------------------
+
+            // Fetch profiles for users we don't have yet
+            sortedList.forEach(conv => {
+                const otherId = conv.otherUserId || conv.id;
+                if (!otherId || isEsttAiAgent(otherId) || profilesRef.current[otherId]) return;
+
+                const pRef = ref(db, `users/${otherId}`);
+                get(pRef).then(snap => {
+                    if (snap.exists()) {
+                        setProfiles(prev => ({ ...prev, [otherId]: snap.val() }));
+                    }
+                });
+            });
             setLoading(false);
         });
 
@@ -109,8 +120,13 @@ export default function MessagesHub() {
         const otherId = conv.otherUserId || conv.id;
         const p = profiles[otherId];
         if (!p) return true;
+        const query = searchQuery.toLowerCase();
         const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
-        return fullName.includes(searchQuery.toLowerCase()) || p.email?.toLowerCase().includes(searchQuery.toLowerCase());
+        return (
+            fullName.includes(query) ||
+            p.email?.toLowerCase().includes(query) ||
+            p.headline?.toLowerCase().includes(query)
+        );
     });
 
     if (authLoading || (loading && conversations.length === 0)) return (
@@ -195,6 +211,7 @@ export default function MessagesHub() {
                             const otherId = conv.otherUserId || conv.id;
                             const p = profiles[otherId];
                             const initials = p ? `${p.firstName?.[0] || ''}${p.lastName?.[0] || ''}` : '?';
+                            const displayName = p ? [p.firstName, p.lastName].filter(Boolean).join(' ') : "Utilisateur...";
                             const timestamp = conv.timestamp ? new Date(conv.timestamp).toLocaleDateString('fr-FR', {
                                 day: 'numeric',
                                 month: 'short',
@@ -232,7 +249,7 @@ export default function MessagesHub() {
                                                     "text-base font-bold truncate transition-colors flex items-center gap-1.5",
                                                     conv.unread ? "text-slate-900" : "text-slate-700"
                                                 )}>
-                                                    {p ? `${p.firstName} ${p.lastName}` : "Utilisateur..."}
+                                                    {displayName}
                                                     {p?.verifiedEmail && (
                                                         <span
                                                             className={cn(
@@ -247,7 +264,12 @@ export default function MessagesHub() {
                                                     {p?.isSubscribed && (
                                                         <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-0.5 rounded shadow-sm flex items-center justify-center">
                                                             <Gem className="w-2.5 h-2.5 text-white" />
-                                                        </div>
+                                                            </div>
+                                                        )}
+                                                    {p?.isAiAssistant && (
+                                                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+                                                            Agent officiel
+                                                        </span>
                                                     )}
                                                 </h3>
                                                 <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap ml-2">

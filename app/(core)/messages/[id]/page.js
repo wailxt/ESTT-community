@@ -7,7 +7,7 @@ import { db, ref, onValue, push, set, serverTimestamp, update, query, limitToLas
 import ChatBubble from '@/components/features/chat/ChatBubble';
 import ChatInput from '@/components/features/chat/ChatInput';
 import ChatTermsDialog from '@/components/features/chat/ChatTermsDialog';
-import { Loader2, ArrowLeft, Bell, BellOff } from 'lucide-react';
+import { Loader2, ArrowLeft, Bell, BellOff, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { onDisconnect, remove } from 'firebase/database';
 import { X, Lock, ShieldCheck, Gem } from 'lucide-react';
@@ -17,15 +17,25 @@ import { Button } from '@/components/ui/button';
 import { getSharedKey, encryptText, decryptText } from '@/lib/crypto';
 import { useNotifications } from '@/context/NotificationContext';
 import { notifyDM as rawNotifyDM } from '@/lib/browserNotifications';
+import {
+    ESTT_AI_AGENT_ID,
+    ESTT_AI_PROFILE,
+    buildEsttAiHistory,
+    isEsttAiAgent,
+} from '@/lib/estt-ai';
+import { searchResourcesAction } from '@/lib/resourceUtils';
 
 export default function DirectMessagePage() {
     const { id: recipientId } = useParams();
     const { user, profile: currentUserProfile, loading: authLoading } = useAuth();
     const { isSupported, permission, requestPermission } = useNotifications();
     const router = useRouter();
+    const isEsttAiChat = isEsttAiAgent(recipientId);
     
     const [messages, setMessages] = useState([]);
-    const [profiles, setProfiles] = useState({});
+    const [profiles, setProfiles] = useState(() => ({
+        [ESTT_AI_AGENT_ID]: ESTT_AI_PROFILE,
+    }));
     const [recipientProfile, setRecipientProfile] = useState(null);
     const [isOnline, setIsOnline] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -35,6 +45,8 @@ export default function DirectMessagePage() {
     const [messageLimit, setMessageLimit] = useState(100);
     const [hasMore, setHasMore] = useState(true);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [isGeneratingAiResponse, setIsGeneratingAiResponse] = useState(false);
+    const [isAiSearching, setIsAiSearching] = useState(false);
     
     const messagesEndRef = useRef(null);
     const scrollContainerRef = useRef(null);
@@ -62,8 +74,12 @@ export default function DirectMessagePage() {
     // Deriving shared key for encryption
     useEffect(() => {
         if (!user || !recipientId) return;
+        if (isEsttAiChat) {
+            setSharedKey(null);
+            return;
+        }
         getSharedKey().then(setSharedKey);
-    }, [user, recipientId]);
+    }, [user, recipientId, isEsttAiChat]);
 
     // Redirect if messaging self
     useEffect(() => {
@@ -75,6 +91,12 @@ export default function DirectMessagePage() {
     // Fetch Recipient Profile
     useEffect(() => {
         if (!recipientId) return;
+        if (isEsttAiChat) {
+            setRecipientProfile(ESTT_AI_PROFILE);
+            setProfiles(prev => ({ ...prev, [ESTT_AI_AGENT_ID]: ESTT_AI_PROFILE }));
+            return;
+        }
+
         const pRef = ref(db, `users/${recipientId}`);
         const unsubscribe = onValue(pRef, (snapshot) => {
             if (snapshot.exists()) {
@@ -83,11 +105,15 @@ export default function DirectMessagePage() {
             }
         });
         return () => unsubscribe();
-    }, [recipientId]);
+    }, [recipientId, isEsttAiChat]);
 
     // Presence Tracking
     useEffect(() => {
         if (!user || authLoading || !roomId) return;
+        if (isEsttAiChat) {
+            setIsOnline(true);
+            return;
+        }
 
         const userStatusRef = ref(db, `direct_messages/${roomId}/presence/${user.uid}`);
         const recipientStatusRef = ref(db, `direct_messages/${roomId}/presence/${recipientId}`);
@@ -103,7 +129,7 @@ export default function DirectMessagePage() {
             if (unsubRecipientPresence) unsubRecipientPresence();
             remove(userStatusRef);
         };
-    }, [user, authLoading, roomId, recipientId]);
+    }, [user, authLoading, roomId, recipientId, isEsttAiChat]);
 
     // Messages Listener
     useEffect(() => {
@@ -164,7 +190,7 @@ export default function DirectMessagePage() {
                         
                         (async () => {
                             let senderProfile = recipientProfileRef.current;
-                            if (!senderProfile) {
+                            if (!senderProfile && !isEsttAiChat) {
                                 const snap = await get(ref(db, `users/${recipientId}`));
                                 if (snap.exists()) senderProfile = snap.val();
                             }
@@ -183,6 +209,11 @@ export default function DirectMessagePage() {
                 // Fetch profiles for users in this chat (mostly just the sender/receiver)
                 const uniqueUserIds = [...new Set(messageList.map(msg => msg.userId))];
                 uniqueUserIds.forEach(uid => {
+                    if (isEsttAiAgent(uid)) {
+                        setProfiles(prev => ({ ...prev, [ESTT_AI_AGENT_ID]: ESTT_AI_PROFILE }));
+                        return;
+                    }
+
                     if (!profilesListeners.current[uid]) {
                         const profileRef = ref(db, `users/${uid}`);
                         profilesListeners.current[uid] = onValue(profileRef, (pSnap) => {
@@ -215,7 +246,7 @@ export default function DirectMessagePage() {
             unsubscribeTyping();
             unsubscribeReadStatus();
         };
-    }, [user, authLoading, roomId, messageLimit, sharedKey]);
+    }, [user, authLoading, roomId, messageLimit, sharedKey, recipientId, isEsttAiChat]);
 
     // Read Tracking
     useEffect(() => {
@@ -254,16 +285,46 @@ export default function DirectMessagePage() {
         }, 100);
     };
 
+    const persistAiReply = async (text, action = null, unread = false) => {
+        const aiMessageRef = push(ref(db, `direct_messages/${roomId}/messages`));
+
+        // If action is display_resources, add sharedResourceIds to the data
+        const sharedResourceIds = action?.action === 'display_resources' ? action.resource_ids : null;
+
+        await set(aiMessageRef, {
+            text,
+            userId: ESTT_AI_AGENT_ID,
+            timestamp: serverTimestamp(),
+            sharedResourceIds,
+            actionData: action // Store raw action data for future reference
+        });
+
+        await update(ref(db, `userConversations/${user.uid}/${recipientId}`), {
+            lastMessage: text,
+            lastMessageSenderId: ESTT_AI_AGENT_ID,
+            lastMessageId: aiMessageRef.key,
+            timestamp: serverTimestamp(),
+            otherUserId: recipientId,
+            unread,
+        });
+
+        return aiMessageRef.key;
+    };
+
     const handleSendMessage = async (text, imageUrl = null, sharedResource = null, extraData = {}, sharedEvent = null) => {
         if (!user || !roomId || (!text && !imageUrl && !sharedResource && !sharedEvent && !extraData?.stickerUrl)) return;
+        if (isEsttAiChat && (!text?.trim() || imageUrl || sharedResource || sharedEvent || extraData?.stickerUrl)) return;
         const newMessageRef = push(ref(db, `direct_messages/${roomId}/messages`));
+        const aiHistory = isEsttAiChat
+            ? buildEsttAiHistory([...messages, { userId: user.uid, text }])
+            : [];
 
         let textToStore = text || "";
         let ciphertext = null;
         let iv = null;
 
         // Encrypt message if key is available
-        if (textToStore && sharedKey) {
+        if (textToStore && sharedKey && !isEsttAiChat) {
             const encrypted = await encryptText(textToStore, sharedKey);
             if (encrypted) {
                 ciphertext = encrypted.ciphertext;
@@ -312,6 +373,58 @@ export default function DirectMessagePage() {
                 ...hubUpdate, 
                 unread: false 
             });
+
+            if (isEsttAiChat) {
+                setIsGeneratingAiResponse(true);
+
+                try {
+                    const fetchAiResponse = async (input, history) => {
+                        const response = await fetch('/api/estt-ai', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                message: input,
+                                history: history,
+                                userProfile: currentUserProfile,
+                            }),
+                        });
+
+                        const payload = await response.json();
+                        if (!response.ok) throw new Error(payload?.error || 'AI Error');
+                        return payload;
+                    };
+
+                    // Initial acknowledgment if the user is asking for resources
+                    // Since the server handles the retrieval, we can show a generic "Searching..." if we detect resource keywords
+                    const isResourceQuery = text.toLowerCase().match(/ressource|cour|exam|pdf|math|physique|module/);
+                    if (isResourceQuery) {
+                        setIsAiSearching(true);
+                    }
+
+                    const payload = await fetchAiResponse(text, aiHistory);
+                    
+                    setIsAiSearching(false);
+                    
+                    if (payload.reply || payload.action) {
+                        await persistAiReply(payload.reply, payload.action, !document.hasFocus());
+                    }
+                } catch (error) {
+                    console.error("❌ [ESTT-AI] FAILURE:", error);
+                    setIsAiSearching(false);
+                    await persistAiReply(
+                        "Désolé, je rencontre une petite difficulté technique. Peux-tu reformuler ta demande ?",
+                        null,
+                        false
+                    );
+                } finally {
+                    setIsGeneratingAiResponse(false);
+                }
+
+                return;
+            }
+
             await update(ref(db, `userConversations/${recipientId}/${user.uid}`), { 
                 ...hubUpdate, 
                 otherUserId: user.uid 
@@ -319,6 +432,7 @@ export default function DirectMessagePage() {
 
         } catch (error) {
             console.error("Error sending message:", error);
+            setIsGeneratingAiResponse(false);
         }
     };
 
@@ -370,6 +484,11 @@ export default function DirectMessagePage() {
     );
 
     const groupedMessages = groupMessagesByDate(messages);
+    const activeRecipientProfile = recipientProfile || (isEsttAiChat ? ESTT_AI_PROFILE : null);
+    const recipientDisplayName = [activeRecipientProfile?.firstName, activeRecipientProfile?.lastName].filter(Boolean).join(' ');
+    const recipientIsTyping = isEsttAiChat
+        ? isGeneratingAiResponse
+        : Object.entries(typingUsers).some(([uid, t]) => t && uid === recipientId);
 
     return (
         <main className="fixed inset-0 z-[100] h-[100dvh] bg-white flex flex-col font-sans overflow-hidden overscroll-none">
@@ -381,51 +500,87 @@ export default function DirectMessagePage() {
                         <Link href="/messages" className="p-1.5 text-slate-500 hover:bg-slate-50 rounded-full transition-all">
                             <ArrowLeft className="w-6 h-6" />
                         </Link>
-                        <Link href={`/profile/${recipientId}`} className="flex items-center gap-3 group">
-                            <div className="relative">
-                                <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden">
-                                    {recipientProfile?.photoUrl ? (
-                                        <img src={recipientProfile.photoUrl} alt="" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">
-                                            {recipientProfile?.firstName?.[0]}{recipientProfile?.lastName?.[0]}
-                                        </div>
-                                    )}
-                                </div>
-                                {isOnline && (
+                        {isEsttAiChat ? (
+                            <div className="flex items-center gap-3">
+                                <div className="relative">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden">
+                                        {activeRecipientProfile?.photoUrl ? (
+                                            <img src={activeRecipientProfile.photoUrl} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">
+                                                {activeRecipientProfile?.firstName?.[0]}{activeRecipientProfile?.lastName?.[0]}
+                                            </div>
+                                        )}
+                                    </div>
                                     <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
-                                )}
-                            </div>
-                            <div className="flex flex-col">
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">
-                                        {recipientProfile?.firstName} {recipientProfile?.lastName}
-                                    </span>
-                                    {recipientProfile?.verifiedEmail && (
-                                        <span 
-                                            className={cn(
-                                                "material-symbols-outlined select-none !text-[13px]",
-                                                recipientProfile?.role === 'admin' ? "text-yellow-500" : "text-emerald-500"
-                                            )} 
+                                </div>
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="text-sm font-bold text-slate-900">
+                                            {recipientDisplayName}
+                                        </span>
+                                        <span
+                                            className="material-symbols-outlined select-none !text-[13px] text-yellow-500"
                                             style={{ fontVariationSettings: "'FILL' 1" }}
                                         >
                                             verified
                                         </span>
-                                    )}
-                                    {recipientProfile?.isSubscribed && (
-                                        <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-0.5 rounded shadow-sm flex items-center justify-center">
-                                            <Gem className="w-2.5 h-2.5 text-white" />
-                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+                                            Officiel
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] font-medium text-slate-500">
+                                        Agent officiel ESTT Community
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <Link href={`/profile/${recipientId}`} className="flex items-center gap-3 group">
+                                <div className="relative">
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden">
+                                        {activeRecipientProfile?.photoUrl ? (
+                                            <img src={activeRecipientProfile.photoUrl} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-400">
+                                                {activeRecipientProfile?.firstName?.[0]}{activeRecipientProfile?.lastName?.[0]}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {isOnline && (
+                                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                                     )}
                                 </div>
-                                <span className="text-[10px] font-medium text-slate-500">
-                                    {isOnline ? 'En ligne' : 'Hors ligne'}
-                                </span>
-                            </div>
-                        </Link>
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="text-sm font-bold text-slate-900 group-hover:text-primary transition-colors">
+                                            {recipientDisplayName}
+                                        </span>
+                                        {activeRecipientProfile?.verifiedEmail && (
+                                            <span
+                                                className={cn(
+                                                    "material-symbols-outlined select-none !text-[13px]",
+                                                    activeRecipientProfile?.role === 'admin' ? "text-yellow-500" : "text-emerald-500"
+                                                )}
+                                                style={{ fontVariationSettings: "'FILL' 1" }}
+                                            >
+                                                verified
+                                            </span>
+                                        )}
+                                        {activeRecipientProfile?.isSubscribed && (
+                                            <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-0.5 rounded shadow-sm flex items-center justify-center">
+                                                <Gem className="w-2.5 h-2.5 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <span className="text-[10px] font-medium text-slate-500">
+                                        {isOnline ? 'En ligne' : 'Hors ligne'}
+                                    </span>
+                                </div>
+                            </Link>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
-                        {sharedKey && (
+                        {sharedKey && !isEsttAiChat && (
                             <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-full border border-emerald-100">
                                 <Lock className="w-3 h-3 text-emerald-600" />
                                 <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Chiffré</span>
@@ -465,41 +620,62 @@ export default function DirectMessagePage() {
             {/* Messages Body */}
             <div ref={scrollContainerRef} className="flex-1 overflow-y-auto px-4 py-6 md:px-12 scroll-smooth bg-white custom-scrollbar overscroll-contain">
                 <div className="max-w-4xl mx-auto">
-                    {Object.entries(groupedMessages).map(([date, msgs]) => (
-                        <div key={date}>
-                            <div className="flex items-center justify-center mb-8">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white px-4">
-                                    {date}
-                                </span>
-                            </div>
-                            {msgs.map((msg, idx) => {
-                                const isContinuation = idx > 0 && msgs[idx - 1].userId === msg.userId;
-                                const isLastInGroup = idx === msgs.length - 1 || msgs[idx + 1].userId !== msg.userId;
-
-                                return (
-                                    <ChatBubble
-                                        key={msg.id}
-                                        message={msg}
-                                        profile={profiles[msg.userId]}
-                                        profiles={profiles}
-                                        readStatuses={readStatuses}
-                                        isOwn={msg.userId === user?.uid}
-                                        currentUserId={user?.uid}
-                                        onReact={(emoji) => handleReact(msg.id, emoji)}
-                                        onDelete={() => handleDelete(msg.id)}
-                                        onReply={(target) => setReplyingTo({
-                                            id: target.id,
-                                            text: target.text,
-                                            userId: target.userId,
-                                            userName: `${profiles[target.userId]?.firstName} ${profiles[target.userId]?.lastName}`
-                                        })}
-                                        isContinuation={isContinuation}
-                                        isLastInGroup={isLastInGroup}
-                                    />
-                                );
-                            })}
+                    {messages.length === 0 ? (
+                        <div className="py-16">
+                            {isEsttAiChat ? (
+                                <div className="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-8 md:p-10 shadow-sm">
+                                    <div className="flex flex-col items-center text-center">
+                                        <div className="w-20 h-20 rounded-[2rem] overflow-hidden border border-slate-200 shadow-sm mb-5">
+                                            <img src={ESTT_AI_PROFILE.photoUrl} alt="ESTT-AI" className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-blue-600">
+                                            ESTT-AI
+                                        </div>
+                                        <h2 className="mt-4 text-2xl font-black text-slate-900">Agent officiel de la communaute ESTT</h2>
+                                        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+                                            Posez vos questions sur la plateforme, les clubs, les evenements, les contributions ou demandez de l'aide pour rediger un message, une annonce ou une presentation.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : null}
                         </div>
-                    ))}
+                    ) : (
+                        Object.entries(groupedMessages).map(([date, msgs]) => (
+                            <div key={date}>
+                                <div className="flex items-center justify-center mb-8">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-300 bg-white px-4">
+                                        {date}
+                                    </span>
+                                </div>
+                                {msgs.map((msg, idx) => {
+                                    const isContinuation = idx > 0 && msgs[idx - 1].userId === msg.userId;
+                                    const isLastInGroup = idx === msgs.length - 1 || msgs[idx + 1].userId !== msg.userId;
+
+                                    return (
+                                        <ChatBubble
+                                            key={msg.id}
+                                            message={msg}
+                                            profile={profiles[msg.userId]}
+                                            profiles={profiles}
+                                            readStatuses={readStatuses}
+                                            isOwn={msg.userId === user?.uid}
+                                            currentUserId={user?.uid}
+                                            onReact={(emoji) => handleReact(msg.id, emoji)}
+                                            onDelete={() => handleDelete(msg.id)}
+                                            onReply={(target) => setReplyingTo({
+                                                id: target.id,
+                                                text: target.text,
+                                                userId: target.userId,
+                                                userName: `${profiles[target.userId]?.firstName} ${profiles[target.userId]?.lastName}`
+                                            })}
+                                            isContinuation={isContinuation}
+                                            isLastInGroup={isLastInGroup}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        ))
+                    )}
                     <div ref={messagesEndRef} />
                 </div>
             </div>
@@ -507,10 +683,21 @@ export default function DirectMessagePage() {
             {/* Input Area */}
             <div className="bg-white border-t border-slate-100 p-3 md:p-6 pb-4 md:pb-8 shrink-0">
                 <div className="max-w-4xl mx-auto">
-                    {Object.entries(typingUsers).some(([uid, t]) => t && uid === recipientId) && (
+                    {isAiSearching && (
+                        <div className="flex items-center gap-2 mb-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                            <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 rounded-full border border-blue-100">
+                                <Search className="w-3 h-3 text-blue-500 animate-pulse" />
+                                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">
+                                    ESTT-AI recherche des ressources...
+                                </span>
+                            </div>
+                        </div>
+                    )}
+
+                    {recipientIsTyping && !isAiSearching && (
                         <div className="flex items-center gap-2 mb-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
                             <span className="text-[10px] font-medium text-slate-400 italic">
-                                {recipientProfile?.firstName} est en train d'écrire...
+                                {activeRecipientProfile?.firstName} est en train d'écrire...
                             </span>
                         </div>
                     )}
@@ -520,7 +707,7 @@ export default function DirectMessagePage() {
                             <div className="flex items-center gap-3 overflow-hidden">
                                 <div className="w-1 h-8 bg-primary rounded-full shrink-0" />
                                 <div className="flex flex-col min-w-0">
-                                    <span className="text-[10px] font-bold text-primary uppercase uppercase tracking-wider">Réponse</span>
+                                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider">Réponse</span>
                                     <p className="text-xs text-slate-500 truncate italic">{replyingTo.text}</p>
                                 </div>
                             </div>
@@ -533,7 +720,9 @@ export default function DirectMessagePage() {
                     <ChatInput
                         onSendMessage={handleSendMessage}
                         onTypingChange={handleTypingChange}
-                        disabled={loading}
+                        disabled={loading || isGeneratingAiResponse}
+                        textOnly={isEsttAiChat}
+                        placeholder={isEsttAiChat ? "Envoyez un message a ESTT-AI..." : "Ecrivez votre message..."}
                     />
                 </div>
             </div>

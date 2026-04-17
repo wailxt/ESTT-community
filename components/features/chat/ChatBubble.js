@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
 import { BadgeCheck, ShieldCheck, Gem, User, SmilePlus, Trash2, MoreHorizontal, Pencil, AlertTriangle, X, Reply, Flag, FileText, Video, Link as LinkIcon, ArrowRight, BookOpen, Users, CheckCheck, Calendar, MapPin, Clock, CalendarDays, Loader2 } from 'lucide-react';
 import { db, ref, get } from '@/lib/firebase';
+import { ESTT_AI_AGENT_ID } from '@/lib/estt-ai';
 
 const COMMON_EMOJIS = ['❤️', '😂', '👍', '🔥', '😮'];
 
@@ -17,10 +20,14 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
     const [loadError, setLoadError] = useState(false);
     const [attendees, setAttendees] = useState([]);
     const [clubInfo, setClubInfo] = useState(null);
+    const [resourceDataList, setResourceDataList] = useState({});
+    const [loadingResources, setLoadingResources] = useState({});
 
-    const { id, userId, text, timestamp, reactions, profile: messageProfile, isDeleted, replyTo, imageUrl, sharedResource, sharedEvent, type, stickerUrl } = message;
+    const { id, userId, text, timestamp, reactions, profile: messageProfile, isDeleted, replyTo, imageUrl, sharedResource, sharedResourceIds, sharedEvent, type, stickerUrl } = message;
     const profile = externalProfile || messageProfile;
     const { firstName, lastName, photoUrl, verifiedEmail, role, subscription } = profile || {};
+    const profileHref = profile?.profileHref === undefined ? `/profile/${userId}` : profile.profileHref;
+    const isMarkdownMessage = profile?.isAiAssistant || userId === ESTT_AI_AGENT_ID;
 
     const formattedTime = new Date(timestamp).toLocaleTimeString('fr-FR', {
         hour: '2-digit',
@@ -97,6 +104,28 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
         }
     }, [sharedEvent]);
 
+    // Multiple Resources Loader
+    useEffect(() => {
+        if (!sharedResourceIds || sharedResourceIds.length === 0) return;
+
+        sharedResourceIds.forEach(async (resId) => {
+            if (resourceDataList[resId] || loadingResources[resId]) return;
+
+            try {
+                setLoadingResources(prev => ({ ...prev, [resId]: true }));
+                const resRef = ref(db, `resources/${resId}`);
+                const snap = await get(resRef);
+                if (snap.exists()) {
+                    setResourceDataList(prev => ({ ...prev, [resId]: snap.val() }));
+                }
+            } catch (err) {
+                console.error(`Failed to load resource ${resId}:`, err);
+            } finally {
+                setLoadingResources(prev => ({ ...prev, [resId]: false }));
+            }
+        });
+    }, [sharedResourceIds]);
+
     // Reactions logic
     const reactionList = reactions ? Object.entries(reactions).map(([emoji, users]) => ({
         emoji,
@@ -127,6 +156,76 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
         }))
         .filter(p => p.firstName);
 
+    const markdownComponents = {
+        p: ({ children }) => <p className="mb-3 last:mb-0 whitespace-pre-wrap">{children}</p>,
+        strong: ({ children }) => <strong className="font-black">{children}</strong>,
+        em: ({ children }) => <em className="italic">{children}</em>,
+        ul: ({ children }) => <ul className="my-3 list-disc space-y-1 pl-5">{children}</ul>,
+        ol: ({ children }) => <ol className="my-3 list-decimal space-y-1 pl-5">{children}</ol>,
+        li: ({ children }) => <li className="pl-1">{children}</li>,
+        h1: ({ children }) => <h1 className="mb-3 text-lg font-black leading-tight">{children}</h1>,
+        h2: ({ children }) => <h2 className="mb-3 text-base font-black leading-tight">{children}</h2>,
+        h3: ({ children }) => <h3 className="mb-2 text-sm font-black uppercase tracking-wide">{children}</h3>,
+        a: ({ href, children }) => (
+            <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                    "font-bold underline decoration-2 underline-offset-2 hover:decoration-4 transition-all",
+                    isOwn ? "text-white" : "text-primary"
+                )}
+            >
+                {children}
+            </a>
+        ),
+        code: ({ inline, children }) => {
+            if (inline) {
+                return (
+                    <code
+                        className={cn(
+                            "rounded-md px-1.5 py-0.5 font-mono text-[0.92em]",
+                            isOwn ? "bg-white/15 text-white" : "bg-slate-900/5 text-slate-900"
+                        )}
+                    >
+                        {children}
+                    </code>
+                );
+            }
+
+            return (
+                <code className={cn("block font-mono text-[13px] md:text-[14px]", isOwn ? "text-white" : "text-slate-50")}>
+                    {children}
+                </code>
+            );
+        },
+        pre: ({ children }) => (
+            <pre
+                className={cn(
+                    "my-3 overflow-x-auto rounded-2xl p-3 md:p-4 text-[13px] leading-relaxed",
+                    isOwn ? "bg-black/15 text-white" : "bg-slate-900 text-slate-50"
+                )}
+            >
+                {children}
+            </pre>
+        ),
+        blockquote: ({ children }) => (
+            <blockquote
+                className={cn(
+                    "my-3 border-l-2 pl-3 italic",
+                    isOwn ? "border-white/40 text-white/90" : "border-slate-300 text-slate-600"
+                )}
+            >
+                {children}
+            </blockquote>
+        ),
+        hr: () => <hr className={cn("my-4 border-t", isOwn ? "border-white/20" : "border-slate-200")} />,
+        table: ({ children }) => <div className="my-3 overflow-x-auto"><table className="min-w-full border-collapse text-sm">{children}</table></div>,
+        thead: ({ children }) => <thead className={isOwn ? "bg-white/10" : "bg-slate-100"}>{children}</thead>,
+        th: ({ children }) => <th className={cn("border px-3 py-2 text-left font-black", isOwn ? "border-white/15" : "border-slate-200")}>{children}</th>,
+        td: ({ children }) => <td className={cn("border px-3 py-2 align-top", isOwn ? "border-white/15" : "border-slate-200")}>{children}</td>,
+    };
+
     return (
         <div
             id={`msg-${id}`}
@@ -146,24 +245,42 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                     isOwn ? "ml-2 md:ml-3" : "mr-2 md:mr-3"
                 )}>
                     {!isContinuation ? (
-                        <Link
-                            href={`/profile/${userId}`}
-                            className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 hover:opacity-80 transition-opacity"
-                        >
-                            {photoUrl ? (
-                                <Image
-                                    src={photoUrl}
-                                    alt={firstName || 'User'}
-                                    width={40}
-                                    height={40}
-                                    className="object-cover w-full h-full"
-                                />
-                            ) : (
-                                <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                    <User className="w-5 h-5 md:w-6 md:h-6" />
-                                </div>
-                            )}
-                        </Link>
+                        profileHref ? (
+                            <Link
+                                href={profileHref}
+                                className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200 hover:opacity-80 transition-opacity"
+                            >
+                                {photoUrl ? (
+                                    <Image
+                                        src={photoUrl}
+                                        alt={firstName || 'User'}
+                                        width={40}
+                                        height={40}
+                                        className="object-cover w-full h-full"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                        <User className="w-5 h-5 md:w-6 md:h-6" />
+                                    </div>
+                                )}
+                            </Link>
+                        ) : (
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
+                                {photoUrl ? (
+                                    <Image
+                                        src={photoUrl}
+                                        alt={firstName || 'User'}
+                                        width={40}
+                                        height={40}
+                                        className="object-cover w-full h-full"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                        <User className="w-5 h-5 md:w-6 md:h-6" />
+                                    </div>
+                                )}
+                            </div>
+                        )
                     ) : (
                         <div className="w-8 md:w-10" /> /* Spacer for alignment */
                     )}
@@ -176,39 +293,74 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                 )}>
                     {/* Name & Badges (Only if not continuation) */}
                     {!isContinuation && (
-                        <Link
-                            href={`/profile/${userId}`}
-                            className={cn(
-                                "flex items-center gap-1 mb-1 md:mb-1.5 hover:opacity-80 transition-opacity",
-                                isOwn ? "flex-row-reverse" : "flex-row"
-                            )}
-                        >
-                            <span className="text-[13px] md:text-sm font-bold text-slate-800">
-                                {firstName} {lastName}
-                            </span>
+                        profileHref ? (
+                            <Link
+                                href={profileHref}
+                                className={cn(
+                                    "flex items-center gap-1 mb-1 md:mb-1.5 hover:opacity-80 transition-opacity",
+                                    isOwn ? "flex-row-reverse" : "flex-row"
+                                )}
+                            >
+                                <span className="text-[13px] md:text-sm font-bold text-slate-800">
+                                    {firstName} {lastName}
+                                </span>
 
-                            {verifiedEmail && (
-                                <div className="relative flex items-center">
-                                    <span
-                                        className={cn(
-                                            "material-symbols-outlined select-none !text-[11px] md:!text-[12px]",
-                                            isAdmin ? "text-yellow-500" : "text-emerald-500"
-                                        )}
-                                        style={{
-                                            fontVariationSettings: "'FILL' 1"
-                                        }}
-                                    >
-                                        verified
-                                    </span>
-                                </div>
-                            )}
+                                {verifiedEmail && (
+                                    <div className="relative flex items-center">
+                                        <span
+                                            className={cn(
+                                                "material-symbols-outlined select-none !text-[11px] md:!text-[12px]",
+                                                isAdmin ? "text-yellow-500" : "text-emerald-500"
+                                            )}
+                                            style={{
+                                                fontVariationSettings: "'FILL' 1"
+                                            }}
+                                        >
+                                            verified
+                                        </span>
+                                    </div>
+                                )}
 
-                            {isSubscribed && (
-                                <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-0.5 rounded-sm shadow-sm flex items-center justify-center">
-                                    <Gem className="!w-1.5 !h-1.5 md:!w-2 md:!h-2 text-white" />
-                                </div>
-                            )}
-                        </Link>
+                                {isSubscribed && (
+                                    <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-0.5 rounded-sm shadow-sm flex items-center justify-center">
+                                        <Gem className="!w-1.5 !h-1.5 md:!w-2 md:!h-2 text-white" />
+                                    </div>
+                                )}
+                            </Link>
+                        ) : (
+                            <div
+                                className={cn(
+                                    "flex items-center gap-1 mb-1 md:mb-1.5",
+                                    isOwn ? "flex-row-reverse" : "flex-row"
+                                )}
+                            >
+                                <span className="text-[13px] md:text-sm font-bold text-slate-800">
+                                    {firstName} {lastName}
+                                </span>
+
+                                {verifiedEmail && (
+                                    <div className="relative flex items-center">
+                                        <span
+                                            className={cn(
+                                                "material-symbols-outlined select-none !text-[11px] md:!text-[12px]",
+                                                isAdmin ? "text-yellow-500" : "text-emerald-500"
+                                            )}
+                                            style={{
+                                                fontVariationSettings: "'FILL' 1"
+                                            }}
+                                        >
+                                            verified
+                                        </span>
+                                    </div>
+                                )}
+
+                                {isSubscribed && (
+                                    <div className="bg-gradient-to-r from-violet-600 to-indigo-500 p-0.5 rounded-sm shadow-sm flex items-center justify-center">
+                                        <Gem className="!w-1.5 !h-1.5 md:!w-2 md:!h-2 text-white" />
+                                    </div>
+                                )}
+                            </div>
+                        )
                     )}
 
                     {/* Bubble Container (for Reaction Picker overlap) */}
@@ -296,38 +448,18 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                             )}
 
                             {/* Shared Resource Card */}
-                            {sharedResource && (
-                                <div className={cn(
-                                    "p-1 md:p-1.5",
-                                    text ? "mb-1" : ""
-                                )}>
-                                    <Link
-                                        href={`/resource/${sharedResource.id}`}
-                                        className="block w-full max-w-[260px] md:max-w-none group/resource bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-xl overflow-hidden hover:bg-white hover:border-primary/30 transition-all shadow-sm"
-                                    >
-                                        <div className="flex items-start gap-3 md:gap-4 p-3 md:p-5">
-                                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-slate-100/50 flex items-center justify-center text-slate-400 group-hover/resource:bg-primary/10 group-hover/resource:text-primary transition-colors shrink-0">
-                                                {sharedResource.type === 'pdf' ? <FileText className="w-5 h-5 md:w-6 md:h-6" /> :
-                                                    sharedResource.type === 'video' ? <Video className="w-5 h-5 md:w-6 md:h-6" /> :
-                                                        sharedResource.type === 'link' ? <LinkIcon className="w-5 h-5 md:w-6 md:h-6" /> :
-                                                            <BookOpen className="w-5 h-5 md:w-6 md:h-6" />}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[13px] md:text-base font-bold text-slate-900 group-hover/resource:text-primary transition-colors line-clamp-2 leading-tight md:leading-snug">
-                                                    {sharedResource.title}
-                                                </p>
-                                                <p className="text-[10px] md:text-xs text-slate-500 mt-1 md:mt-1.5 truncate">
-                                                    {sharedResource.module} • {sharedResource.professor || 'Professeur'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="bg-slate-50/50 border-t border-slate-100/50 px-3 md:px-5 py-2 md:py-2.5 flex items-center justify-between group-hover/resource:bg-primary/5 transition-colors">
-                                            <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">{sharedResource.type}</span>
-                                            <span className="text-[10px] md:text-xs font-bold text-primary flex items-center gap-1 group-hover/resource:underline">
-                                                Voir ressource <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5" />
-                                            </span>
-                                        </div>
-                                    </Link>
+                            {sharedResource && <ResourceCard resource={{ id: sharedResource.id, ...sharedResource }} isOwn={isOwn} />}
+
+                            {/* Multiple Shared Resource Cards */}
+                            {sharedResourceIds && sharedResourceIds.length > 0 && (
+                                <div className="space-y-2 p-1.5">
+                                    {sharedResourceIds.map(resId => {
+                                        const res = resourceDataList[resId];
+                                        const isLoading = loadingResources[resId];
+                                        if (isLoading) return <ResourceCardSkeleton key={resId} isOwn={isOwn} />;
+                                        if (!res) return null;
+                                        return <ResourceCard key={resId} resource={{ id: resId, ...res }} isOwn={isOwn} />;
+                                    })}
                                 </div>
                             )}
 
@@ -491,13 +623,25 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                             {/* Text Content */}
                             {(text || isDeleted) && (
                                 <div className={cn(
-                                    !isDeleted && (imageUrl || sharedResource ? "px-4 pb-3 pt-1 md:px-6 md:pb-4 md:pt-2" : "px-4 py-2 md:px-6 md:py-3.5")
+                                    !isDeleted && (imageUrl || sharedResource || (sharedResourceIds && sharedResourceIds.length > 0) || sharedEvent ? "px-4 pb-3 pt-1 md:px-6 md:pb-4 md:pt-2" : "px-4 py-2 md:px-6 md:py-3.5")
                                 )}>
                                     {isDeleted ? (
                                         <span className="italic opacity-60">Ce message a été supprimé</span>
                                     ) : (
                                         (() => {
                                             if (!text) return null;
+                                            if (isMarkdownMessage) {
+                                                return (
+                                                    <div className="markdown-message">
+                                                        <ReactMarkdown
+                                                            remarkPlugins={[remarkGfm]}
+                                                            components={markdownComponents}
+                                                        >
+                                                            {text}
+                                                        </ReactMarkdown>
+                                                    </div>
+                                                );
+                                            }
                                             // Unified regex for mentions and URLs
                                             const parts = text.split(/((?:@\w+_\w+)|(?:https?:\/\/[^\s]+))/g);
                                             return parts.map((part, index) => {
@@ -593,8 +737,6 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                                                 <Reply className="w-4 h-4" />
                                                 Répondre
                                             </button>
-
-
 
                                             {canDelete && (
                                                 <button
@@ -800,6 +942,48 @@ export default function ChatBubble({ message, isOwn, onReact, onDelete, onReply,
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function ResourceCard({ resource, isOwn }) {
+    return (
+        <div className="p-0.5">
+            <Link
+                href={`/resource/${resource.id}`}
+                className="block w-full max-w-[260px] md:max-w-none group/resource bg-white/60 backdrop-blur-sm border border-slate-200/60 rounded-xl overflow-hidden hover:bg-white hover:border-primary/30 transition-all shadow-sm"
+            >
+                <div className="flex items-start gap-3 md:gap-4 p-3 md:p-5">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl bg-slate-100/50 flex items-center justify-center text-slate-400 group-hover/resource:bg-primary/10 group-hover/resource:text-primary transition-colors shrink-0">
+                        {resource.type === 'pdf' ? <FileText className="w-5 h-5 md:w-6 md:h-6" /> :
+                            resource.type === 'video' ? <Video className="w-5 h-5 md:w-6 md:h-6" /> :
+                                resource.type === 'link' ? <LinkIcon className="w-5 h-5 md:w-6 md:h-6" /> :
+                                    <BookOpen className="w-5 h-5 md:w-6 md:h-6" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className="text-[13px] md:text-base font-bold text-slate-900 group-hover/resource:text-primary transition-colors line-clamp-2 leading-tight md:leading-snug">
+                            {resource.title}
+                        </p>
+                        <p className="text-[10px] md:text-xs text-slate-500 mt-1 md:mt-1.5 truncate">
+                            {resource.module || 'Ressource'} • {resource.professor || 'Professeur'}
+                        </p>
+                    </div>
+                </div>
+                <div className="bg-slate-50/50 border-t border-slate-100/50 px-3 md:px-5 py-2 md:py-2.5 flex items-center justify-between group-hover/resource:bg-primary/5 transition-colors">
+                    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider">{resource.type || 'Fichier'}</span>
+                    <span className="text-[10px] md:text-xs font-bold text-primary flex items-center gap-1 group-hover/resource:underline">
+                        Voir ressource <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5" />
+                    </span>
+                </div>
+            </Link>
+        </div>
+    );
+}
+
+function ResourceCardSkeleton({ isOwn }) {
+    return (
+        <div className="p-0.5 animate-pulse">
+            <div className="w-full h-24 bg-white/40 border border-slate-200/50 rounded-xl" />
         </div>
     );
 }

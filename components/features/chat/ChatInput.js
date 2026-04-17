@@ -18,7 +18,14 @@ import {
 } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { useState, useRef, useEffect } from 'react';
-export default function ChatInput({ onSendMessage, onTypingChange, disabled, mentionableUsers = [] }) {
+export default function ChatInput({
+    onSendMessage,
+    onTypingChange,
+    disabled,
+    mentionableUsers = [],
+    textOnly = false,
+    placeholder = "Ecrivez votre message...",
+}) {
     const [message, setMessage] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [isResourceDrawerOpen, setIsResourceDrawerOpen] = useState(false);
@@ -297,7 +304,8 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                         className="hidden"
                     />
 
-                    <div className="flex items-center gap-1.5">
+                    {!textOnly && (
+                        <div className="flex items-center gap-1.5">
                         <button
                             type="button"
                             disabled={disabled || isUploading}
@@ -510,7 +518,8 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                                 </Tabs>
                             </SheetContent>
                         </Sheet>
-                    </div>
+                        </div>
+                    )}
 
                     <div className="relative flex-1">
                         {/* Mention Suggestions */}
@@ -542,7 +551,7 @@ export default function ChatInput({ onSendMessage, onTypingChange, disabled, men
                             value={message}
                             onChange={handleInputChange}
                             onKeyDown={handleKeyDown}
-                            placeholder="Écrivez votre message..."
+                            placeholder={placeholder}
                             disabled={disabled || isUploading}
                             className={cn(
                                 "w-full bg-slate-50 border border-slate-200 rounded-full py-3.5 px-6 pr-14 text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30",
