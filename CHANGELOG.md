@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.4...v1.20.0) (2026-04-17)
+
+
+### Features
+
+* implementing an ai agent ([2db11df](https://github.com/abdelhakim-sahifa/ESTT-community/commit/2db11df91254daef6cd2d556abd438ab0aa837e2))
+
 ## [1.19.4](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.19.3...v1.19.4) (2026-04-17)
 
 
