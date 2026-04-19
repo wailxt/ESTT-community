@@ -5,6 +5,8 @@ import { db, ref, onValue } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useRef } from 'react';
+import { notifySlack, SLACK_CHANNELS } from '@/lib/slack';
 
 // Subcomponents
 import ModeratorSidebar from './ModeratorSidebar';
@@ -13,6 +15,7 @@ import AdminResources from './AdminResources';
 import AdminUsers from './AdminUsers';
 import AdminReports from './AdminReports';
 import AdminFastContribute from './AdminFastContribute';
+import ModeratorDocs from './ModeratorDocs';
 
 export default function ModeratorDashboard() {
     const { user, profile, loading: authLoading } = useAuth();
@@ -27,6 +30,7 @@ export default function ModeratorDashboard() {
     const [users, setUsers] = useState([]);
     const [reports, setReports] = useState([]);
     const [activeTab, setActiveTab] = useState('overview');
+    const notifiedRef = useRef(false);
 
     // Access Check: Admin or Moderator
     useEffect(() => {
@@ -36,6 +40,25 @@ export default function ModeratorDashboard() {
             router.push('/');
         }
     }, [user, profile, authLoading, router]);
+
+    // Presence Tracking: Notify Slack
+    useEffect(() => {
+        if (!authLoading && user && profile && !notifiedRef.current) {
+            const role = profile?.role;
+            if (role === 'admin' || role === 'moderator') {
+                notifiedRef.current = true;
+                notifySlack(SLACK_CHANNELS.ADMIN, {
+                    title: "🔐 Accès Panel Modérateur",
+                    message: `Un *${role}* vient d'entrer dans le panneau de gestion.`,
+                    user: {
+                        name: `${profile.firstName} ${profile.lastName}`,
+                        email: profile.email || user.email,
+                        uid: user.uid
+                    }
+                });
+            }
+        }
+    }, [user, profile, authLoading]);
 
     useEffect(() => {
         const role = profile?.role;
@@ -138,6 +161,10 @@ export default function ModeratorDashboard() {
 
                     {activeTab === 'fastContribute' && (
                         <AdminFastContribute />
+                    )}
+
+                    {activeTab === 'documentation' && (
+                        <ModeratorDocs />
                     )}
                 </main>
             </div>

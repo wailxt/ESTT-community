@@ -1,3 +1,5 @@
+import { useAuth } from '@/context/AuthContext';
+import { logModeratorAction } from '@/lib/moderator-logs';
 import { useState } from 'react';
 import { db, ref, remove, get, update } from '@/lib/firebase';
 import { useDialog } from '@/context/DialogContext';
@@ -11,6 +13,7 @@ import Link from 'next/link';
 import { reportDismissedEmail, reportDeletedEmail } from '@/lib/email-templates';
 
 export default function AdminReports({ reports }) {
+    const { user } = useAuth();
     const { showError, showSuccess, showConfirm } = useDialog();
     const [actionLoading, setActionLoading] = useState(null);
 
@@ -29,6 +32,14 @@ export default function AdminReports({ reports }) {
                     html: reportDismissedEmail(report.reporterName, report.resourceTitle)
                 })
             }).catch(e => console.error("Email send failed:", e));
+
+            // Log the action
+            logModeratorAction(user?.uid, 'report_dismissed', {
+                reportId: report.id,
+                resourceId: report.resourceId,
+                resourceTitle: report.resourceTitle
+            });
+
 
         } catch (error) {
             console.error('Error dismissing report:', error);
@@ -81,7 +92,16 @@ export default function AdminReports({ reports }) {
                 })
             }).catch(e => console.error("Email send failed:", e));
 
+            // Log the action
+            logModeratorAction(user?.uid, 'resource_deleted_via_report', {
+                reportId: report.id,
+                resourceId: report.resourceId,
+                resourceTitle: report.resourceTitle,
+                reason: report.reason
+            });
+
             showSuccess('Ressource et signalement supprimés avec succès.');
+
         } catch (error) {
             console.error('Error deleting resource:', error);
             showError('Erreur lors de la suppression de la ressource.');

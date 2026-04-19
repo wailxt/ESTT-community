@@ -4,7 +4,8 @@ import {
     Users,
     AlertCircle,
     ShieldCheck,
-    Zap
+    Zap,
+    BookOpen
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -58,6 +59,16 @@ export default function ModeratorSidebar({ activeTab, setActiveTab, profile, sta
                 >
                     <AlertCircle className="w-4 h-4" /> Signalements
                     {openReportsCount > 0 && <Badge variant="destructive" className="ml-auto px-1.5 h-5 min-w-5 flex items-center justify-center">{openReportsCount}</Badge>}
+                </Button>
+
+                <div className="h-px bg-slate-100 my-2" />
+
+                <Button
+                    variant={activeTab === 'documentation' ? 'default' : 'ghost'}
+                    className="justify-start gap-3 h-11"
+                    onClick={() => setActiveTab('documentation')}
+                >
+                    <BookOpen className="w-4 h-4" /> Documentation
                 </Button>
             </nav>
 

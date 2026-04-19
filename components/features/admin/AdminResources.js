@@ -1,7 +1,9 @@
-﻿import { useState } from 'react';
-import Link from 'next/link';
-import { db, ref, update, remove, get, push, set } from '@/lib/firebase';
+import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { logModeratorAction } from '@/lib/moderator-logs';
 import { useDialog } from '@/context/DialogContext';
+import { db, ref, update, remove, get, push, set } from '@/lib/firebase';
+import Link from 'next/link';
 import {
     Table,
     TableBody,
@@ -37,8 +39,8 @@ import { sendPrivateNotification, NOTIF_TYPES } from '@/lib/notifications';
 import { db as staticDb } from '@/lib/data';
 import { Checkbox } from '@/components/ui/checkbox';
 
-
 export default function AdminResources({ resources }) {
+    const { user } = useAuth();
     const { showSuccess, showError } = useDialog();
     const [searchTerm, setSearchTerm] = useState('');
     const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
@@ -161,6 +163,14 @@ export default function AdminResources({ resources }) {
 
 
             showSuccess("Ressource approuvée !");
+
+            // Log the action
+            logModeratorAction(user?.uid, 'accept', {
+                resourceId: resource.id,
+                title: resource.title,
+                authorId: resource.authorId
+            });
+
         } catch (err) {
             console.error(err);
             showError("Erreur lors de l'approbation.");
@@ -234,7 +244,15 @@ export default function AdminResources({ resources }) {
                 const keywordPath = `metadata/keywords/${resource.field}/${resource.id}`;
                 await remove(ref(db, keywordPath));
             }
+            // Log the action
+            logModeratorAction(user?.uid, 'deletion', {
+                resourceId: resource.id,
+                title: resource.title,
+                authorId: resource.authorId,
+                reason: reason
+            });
             // toast success?
+
         } catch (err) {
             console.error(err);
             showError("Une erreur est survenue lors du rejet.");
@@ -333,7 +351,19 @@ export default function AdminResources({ resources }) {
                 });
             }
 
+            // Log the action
+            logModeratorAction(user?.uid, 'modification', {
+                resourceId: itemToEdit.id,
+                title: editData.title,
+                changes: changes.map(c => ({
+                    field: c.label,
+                    old: c.old,
+                    new: c.new
+                }))
+            });
+
             setEditModalOpen(false);
+
             setItemToEdit(null);
         } catch (err) {
             console.error(err);
@@ -495,7 +525,16 @@ export default function AdminResources({ resources }) {
                 itemToContact.unverified ? 'en attente de validation' : 'deja acceptee'
             );
 
+            // Log the action
+            logModeratorAction(user?.uid, 'contact', {
+                resourceId: itemToContact.id,
+                title: itemToContact.title,
+                authorId: itemToContact.authorId,
+                roomId: threadId
+            });
+
             await fetch('/api/send-email', {
+
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -704,11 +743,10 @@ export default function AdminResources({ resources }) {
                                                         {[1, 2, 3, 4, 5].map((value) => (
                                                             <Star
                                                                 key={value}
-                                                                className={`w-3 h-3 ${
-                                                                    value <= (r.rating || 0)
-                                                                        ? 'text-yellow-500 fill-yellow-500'
-                                                                        : 'text-slate-300'
-                                                                }`}
+                                                                className={`w-3 h-3 ${value <= (r.rating || 0)
+                                                                    ? 'text-yellow-500 fill-yellow-500'
+                                                                    : 'text-slate-300'
+                                                                    }`}
                                                             />
                                                         ))}
                                                     </div>

@@ -24,19 +24,18 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
-
-// Recharts components with SSR disabled to prevent hydration errors
-const ResponsiveContainer = dynamic(() => import('recharts').then(mod => mod.ResponsiveContainer), { ssr: false });
-const PieChart = dynamic(() => import('recharts').then(mod => mod.PieChart), { ssr: false });
-const Pie = dynamic(() => import('recharts').then(mod => mod.Pie), { ssr: false });
-const Cell = dynamic(() => import('recharts').then(mod => mod.Cell), { ssr: false });
-const BarChart = dynamic(() => import('recharts').then(mod => mod.BarChart), { ssr: false });
-const Bar = dynamic(() => import('recharts').then(mod => mod.Bar), { ssr: false });
-const XAxis = dynamic(() => import('recharts').then(mod => mod.XAxis), { ssr: false });
-const YAxis = dynamic(() => import('recharts').then(mod => mod.YAxis), { ssr: false });
-const Tooltip = dynamic(() => import('recharts').then(mod => mod.Tooltip), { ssr: false });
-const Legend = dynamic(() => import('recharts').then(mod => mod.Legend), { ssr: false });
+import { 
+    ResponsiveContainer, 
+    PieChart, 
+    Pie, 
+    Cell, 
+    BarChart, 
+    Bar, 
+    XAxis, 
+    YAxis, 
+    Tooltip, 
+    Legend 
+} from 'recharts';
 
 const TYPE_COLORS = ['#3b82f6', '#f59e0b', '#ec4899', '#10b981', '#6366f1'];
 const STATUS_COLORS = { 'Vérifié': '#10b981', 'En attente': '#ef4444' };
@@ -45,6 +44,12 @@ const USER_FIELD_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b'
 export default function AdminOverview({ stats, resources, users = [], setActiveTab }) {
     const { showSuccess, showError, showConfirm } = useDialog();
     const [rebuilding, setRebuilding] = useState(false);
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Mounting check for Recharts in Next.js
+    useState(() => {
+        setIsMounted(true);
+    }, []);
 
     // Filter states for modules explorer
     const [selectedField, setSelectedField] = useState(staticDb.fields[0]?.id || 'ia');
@@ -217,52 +222,60 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[300px]">
-                            <div className="relative">
-                                <p className="text-[10px] font-black uppercase text-center mb-2 tracking-widest text-muted-foreground">Types</p>
-                                <ResponsiveContainer width="100%" height="90%">
-                                    <PieChart>
-                                        <Pie
-                                            data={chartData.types}
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                        >
-                                            {chartData.types.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={TYPE_COLORS[index % TYPE_COLORS.length]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip 
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                            itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                        />
-                                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div className="relative">
-                                <p className="text-[10px] font-black uppercase text-center mb-2 tracking-widest text-muted-foreground">Statut</p>
-                                <ResponsiveContainer width="100%" height="90%">
-                                    <PieChart>
-                                        <Pie
-                                            data={chartData.status}
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
-                                            dataKey="value"
-                                        >
-                                            {chartData.status.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name]} />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip 
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                            itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
-                                        />
-                                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                            </div>
+                            {isMounted ? (
+                                <>
+                                    <div className="relative">
+                                        <p className="text-[10px] font-black uppercase text-center mb-2 tracking-widest text-muted-foreground">Types</p>
+                                        <ResponsiveContainer width="100%" height="90%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={chartData.types}
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    {chartData.types.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={TYPE_COLORS[index % TYPE_COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip 
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                                />
+                                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                    <div className="relative">
+                                        <p className="text-[10px] font-black uppercase text-center mb-2 tracking-widest text-muted-foreground">Statut</p>
+                                        <ResponsiveContainer width="100%" height="90%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={chartData.status}
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    {chartData.status.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip 
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                                />
+                                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="col-span-2 flex items-center justify-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-slate-200" />
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -278,64 +291,72 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-6">
-                            <div className="h-[140px]">
-                                <p className="text-[10px] font-black uppercase mb-2 tracking-widest text-muted-foreground">Top Filières</p>
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData.fields} layout="vertical">
-                                        <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={9} width={80} tickFormatter={(val) => val.split(' ')[0]} />
-                                        <Tooltip 
-                                            cursor={{ fill: '#f8fafc' }}
-                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                        />
-                                        <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={10} />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </div>
-                            
-                            <hr className="border-slate-50" />
-
-                            <div className="space-y-4">
-                                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Explorateur de Modules</p>
-                                    <div className="flex gap-2 w-full sm:w-auto">
-                                        <Select value={selectedField} onValueChange={setSelectedField}>
-                                            <SelectTrigger className="w-full sm:w-[120px] h-7 text-[10px] uppercase font-bold rounded-lg px-2">
-                                                <SelectValue placeholder="Filière" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {staticDb.fields.map(f => (
-                                                    <SelectItem key={f.id} value={f.id} className="text-[10px] font-bold uppercase">{f.id.toUpperCase()}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <Select value={selectedSem} onValueChange={setSelectedSem}>
-                                            <SelectTrigger className="w-full sm:w-[80px] h-7 text-[10px] uppercase font-bold rounded-lg px-2">
-                                                <SelectValue placeholder="Sem." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {staticDb.semesters.map(s => (
-                                                    <SelectItem key={s} value={s} className="text-[10px] font-bold uppercase">{s}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                            {isMounted ? (
+                                <>
+                                    <div className="h-[140px]">
+                                        <p className="text-[10px] font-black uppercase mb-2 tracking-widest text-muted-foreground">Top Filières</p>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={chartData.fields} layout="vertical">
+                                                <XAxis type="number" hide />
+                                                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={9} width={80} tickFormatter={(val) => val.split(' ')[0]} />
+                                                <Tooltip 
+                                                    cursor={{ fill: '#f8fafc' }}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                />
+                                                <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={10} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
                                     </div>
+                                    
+                                    <hr className="border-slate-50" />
+
+                                    <div className="space-y-4">
+                                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Explorateur de Modules</p>
+                                            <div className="flex gap-2 w-full sm:w-auto">
+                                                <Select value={selectedField} onValueChange={setSelectedField}>
+                                                    <SelectTrigger className="w-full sm:w-[120px] h-7 text-[10px] uppercase font-bold rounded-lg px-2">
+                                                        <SelectValue placeholder="Filière" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {staticDb.fields.map(f => (
+                                                            <SelectItem key={f.id} value={f.id} className="text-[10px] font-bold uppercase">{f.id.toUpperCase()}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <Select value={selectedSem} onValueChange={setSelectedSem}>
+                                                    <SelectTrigger className="w-full sm:w-[80px] h-7 text-[10px] uppercase font-bold rounded-lg px-2">
+                                                        <SelectValue placeholder="Sem." />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {staticDb.semesters.map(s => (
+                                                            <SelectItem key={s} value={s} className="text-[10px] font-bold uppercase">{s}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="h-[150px]">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={chartData.modules}>
+                                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={7} tickFormatter={(val) => val.length > 8 ? val.slice(0, 8) + '...' : val} />
+                                                    <YAxis fontSize={9} stroke="#94a3b8" />
+                                                    <Tooltip 
+                                                        cursor={{ fill: '#f8fafc' }}
+                                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                    />
+                                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="h-[340px] flex items-center justify-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-slate-200" />
                                 </div>
-                                
-                                <div className="h-[150px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={chartData.modules}>
-                                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={7} tickFormatter={(val) => val.length > 8 ? val.slice(0, 8) + '...' : val} />
-                                            <YAxis fontSize={9} stroke="#94a3b8" />
-                                            <Tooltip 
-                                                cursor={{ fill: '#f8fafc' }}
-                                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                            />
-                                            <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
@@ -353,21 +374,27 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                     </CardHeader>
                     <CardContent className="p-6">
                         <div className="h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData.userFields} layout="vertical">
-                                    <XAxis type="number" hide />
-                                    <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={120} tickFormatter={(val) => val.length > 20 ? val.slice(0, 17) + '...' : val} />
-                                    <Tooltip 
-                                        cursor={{ fill: '#f8fafc' }}
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                    />
-                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={15}>
-                                        {chartData.userFields.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={USER_FIELD_COLORS[index % USER_FIELD_COLORS.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
+                            {isMounted ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={chartData.userFields} layout="vertical">
+                                        <XAxis type="number" hide />
+                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={120} tickFormatter={(val) => val.length > 20 ? val.slice(0, 17) + '...' : val} />
+                                        <Tooltip 
+                                            cursor={{ fill: '#f8fafc' }}
+                                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        />
+                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={15}>
+                                            {chartData.userFields.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={USER_FIELD_COLORS[index % USER_FIELD_COLORS.length]} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-slate-200" />
+                                </div>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
