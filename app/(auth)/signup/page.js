@@ -53,8 +53,9 @@ export default function SignupPage() {
     }, [searchParams]);
 
 
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 6 }, (_, i) => (currentYear - i).toString());
+    const now = new Date();
+    const maxYear = (now.getMonth() + 1 >= 9) ? now.getFullYear() : now.getFullYear() - 1;
+    const years = Array.from({ length: Math.max(1, maxYear - 2023) }, (_, i) => (maxYear - i).toString());
 
     const validateEmail = (email) => {
         return email.toLowerCase().endsWith('@etu.uae.ac.ma');
