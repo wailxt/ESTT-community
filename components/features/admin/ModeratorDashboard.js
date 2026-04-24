@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db, ref, onValue } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
-import { useRef } from 'react';
+import { Loader2, Menu, X, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { notifySlack, SLACK_CHANNELS } from '@/lib/slack';
 
 // Subcomponents
@@ -30,6 +30,7 @@ export default function ModeratorDashboard() {
     const [users, setUsers] = useState([]);
     const [reports, setReports] = useState([]);
     const [activeTab, setActiveTab] = useState('overview');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const notifiedRef = useRef(false);
 
     // Access Check: Admin or Moderator
@@ -114,7 +115,6 @@ export default function ModeratorDashboard() {
         };
     }, [user, profile, authLoading]);
 
-
     if (authLoading || loading) return (
         <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="w-10 h-10 animate-spin text-primary" />
@@ -127,17 +127,35 @@ export default function ModeratorDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50/50">
-            <div className="flex flex-col md:flex-row min-h-screen">
+        <div className="min-h-screen bg-slate-50/50 flex flex-col">
+            {/* Mobile Header */}
+            <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-50">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                        <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <span className="font-black tracking-tight text-lg">Moderator<span className="text-blue-600">Panel</span></span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </Button>
+            </div>
+
+            <div className="flex flex-col md:flex-row flex-grow relative">
                 <ModeratorSidebar
                     activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+                    setActiveTab={(tab) => {
+                        setActiveTab(tab);
+                        setIsSidebarOpen(false);
+                    }}
                     profile={profile}
                     stats={stats}
                     openReportsCount={reports.length}
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setIsSidebarOpen}
                 />
 
-                <main className="flex-grow p-6 md:p-10 overflow-auto">
+                <main className="flex-grow p-4 md:p-10 overflow-auto">
                     {activeTab === 'overview' && (
                         <AdminOverview
                             stats={stats}

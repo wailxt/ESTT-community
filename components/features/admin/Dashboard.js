@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { db, ref, onValue, update } from '@/lib/firebase';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Menu, X, ShieldCheck } from 'lucide-react';
+
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
@@ -27,8 +28,6 @@ import AdminShortUrls from './AdminShortUrls';
 import AdminCommunication from './AdminCommunication';
 import AdminRewardCodes from './AdminRewardCodes';
 import { normalizeProject, normalizeShowcase, normalizeSubmission } from '@/lib/projects';
-
-
 
 export default function AdminDashboard() {
     const { user, profile, loading: authLoading } = useAuth();
@@ -54,6 +53,7 @@ export default function AdminDashboard() {
     const [projectBriefs, setProjectBriefs] = useState([]);
     const [projectSubmissions, setProjectSubmissions] = useState([]);
     const [projectShowcases, setProjectShowcases] = useState([]);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Admin Check
     useEffect(() => {
@@ -202,8 +202,8 @@ export default function AdminDashboard() {
     // Handle tab change from outside (e.g. sidebar)
     const handleTabChange = (status) => {
         setActiveTab(status);
+        setIsSidebarOpen(false);
     };
-
 
     if (authLoading || loading) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -216,20 +216,38 @@ export default function AdminDashboard() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50/50">
-            <div className="flex flex-col md:flex-row min-h-screen">
+        <div className="min-h-screen bg-slate-50/50 flex flex-col">
+            {/* Mobile Header */}
+            <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-50">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+                        <ShieldCheck className="w-5 h-5" />
+                    </div>
+                    <span className="font-black tracking-tight text-lg">Admin<span className="text-primary">Panel</span></span>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                    {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                </Button>
+            </div>
+
+            <div className="flex flex-col md:flex-row flex-grow relative">
                 <AdminSidebar
                     activeTab={activeTab}
-                    setActiveTab={setActiveTab}
+                    setActiveTab={(tab) => {
+                        setActiveTab(tab);
+                        setIsSidebarOpen(false);
+                    }}
                     profile={profile}
                     stats={stats}
                     openReportsCount={reports.length}
                     openBugReportsCount={bugReports.filter(b => b.status === 'open').length}
                     openClubRequestsCount={clubRequests.length}
                     openClubChangeRequestsCount={clubChangeRequests.length}
+                    isOpen={isSidebarOpen}
+                    setIsOpen={setIsSidebarOpen}
                 />
 
-                <main className="flex-grow p-6 md:p-10 overflow-auto">
+                <main className="flex-grow p-4 md:p-10 overflow-auto">
                     {activeTab === 'overview' && (
                         <AdminOverview
                             stats={stats}
@@ -308,9 +326,7 @@ export default function AdminDashboard() {
                     {activeTab === 'rewardCodes' && (
                         <AdminRewardCodes />
                     )}
-
                 </main>
-
             </div>
         </div>
     );

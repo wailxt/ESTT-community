@@ -168,43 +168,43 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
             </div>
 
             {/* Top Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="border-none shadow-sm bg-white overflow-hidden group">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <Card className="border-none shadow-sm bg-white overflow-hidden group col-span-1">
                     <div className="h-1 bg-blue-600 w-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                <Users className="w-5 h-5" />
+                    <CardContent className="p-4 md:p-6">
+                        <div className="flex items-center justify-between mb-2 md:mb-4">
+                            <div className="p-1.5 md:p-2 bg-blue-50 text-blue-600 rounded-lg">
+                                <Users className="w-4 h-4 md:w-5 md:h-5" />
                             </div>
-                            <Badge variant="outline" className="text-[10px] border-blue-100 text-blue-600">+12%</Badge>
+                            <Badge variant="outline" className="text-[9px] md:text-[10px] border-blue-100 text-blue-600">+12%</Badge>
                         </div>
-                        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Utilisateurs</p>
-                        <h3 className="text-3xl font-black mt-1">{stats.users}</h3>
+                        <p className="text-[10px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Utilisateurs</p>
+                        <h3 className="text-xl md:text-3xl font-black mt-1">{stats.users}</h3>
                     </CardContent>
                 </Card>
-                <Card className="border-none shadow-sm bg-white overflow-hidden group">
+                <Card className="border-none shadow-sm bg-white overflow-hidden group col-span-1">
                     <div className="h-1 bg-purple-600 w-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                                <FileText className="w-5 h-5" />
+                    <CardContent className="p-4 md:p-6">
+                        <div className="flex items-center justify-between mb-2 md:mb-4">
+                            <div className="p-1.5 md:p-2 bg-purple-50 text-purple-600 rounded-lg">
+                                <FileText className="w-4 h-4 md:w-5 md:h-5" />
                             </div>
-                            <Badge variant="outline" className="text-[10px] border-purple-100 text-purple-600">+5%</Badge>
+                            <Badge variant="outline" className="text-[9px] md:text-[10px] border-purple-100 text-purple-600">+5%</Badge>
                         </div>
-                        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">Ressources</p>
-                        <h3 className="text-3xl font-black mt-1">{stats.resources}</h3>
+                        <p className="text-[10px] md:text-sm font-bold text-muted-foreground uppercase tracking-wider">Ressources</p>
+                        <h3 className="text-xl md:text-3xl font-black mt-1">{stats.resources}</h3>
                     </CardContent>
                 </Card>
 
-                <Card className="border-none shadow-sm bg-primary text-white overflow-hidden">
-                    <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="p-2 bg-white/20 text-white rounded-lg">
-                                <AlertCircle className="w-5 h-5" />
+                <Card className="border-none shadow-sm bg-primary text-white overflow-hidden col-span-2 lg:col-span-1">
+                    <CardContent className="p-4 md:p-6">
+                        <div className="flex items-center justify-between mb-2 md:mb-4">
+                            <div className="p-1.5 md:p-2 bg-white/20 text-white rounded-lg">
+                                <AlertCircle className="w-4 h-4 md:w-5 md:h-5" />
                             </div>
                         </div>
-                        <p className="text-sm font-bold opacity-80 uppercase tracking-wider">En attente</p>
-                        <h3 className="text-3xl font-black mt-1">{stats.pending}</h3>
+                        <p className="text-[10px] md:text-sm font-bold opacity-80 uppercase tracking-wider">En attente</p>
+                        <h3 className="text-xl md:text-3xl font-black mt-1">{stats.pending}</h3>
                     </CardContent>
                 </Card>
             </div>
@@ -221,10 +221,10 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                         <PieChartIcon className="w-5 h-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[300px]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-4 min-h-[300px]">
                             {isMounted ? (
                                 <>
-                                    <div className="relative">
+                                    <div className="h-[250px] md:h-auto relative">
                                         <p className="text-[10px] font-black uppercase text-center mb-2 tracking-widest text-muted-foreground">Types</p>
                                         <ResponsiveContainer width="100%" height="90%">
                                             <PieChart>
@@ -241,13 +241,18 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                                                 </Pie>
                                                 <Tooltip 
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                                    itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
                                                 />
-                                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                                                <Legend 
+                                                    verticalAlign="bottom" 
+                                                    height={48} 
+                                                    iconType="circle" 
+                                                    wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', bottom: -10 }} 
+                                                />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
-                                    <div className="relative">
+                                    <div className="h-[250px] md:h-auto relative">
                                         <p className="text-[10px] font-black uppercase text-center mb-2 tracking-widest text-muted-foreground">Statut</p>
                                         <ResponsiveContainer width="100%" height="90%">
                                             <PieChart>
@@ -264,15 +269,20 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                                                 </Pie>
                                                 <Tooltip 
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                                    itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                                    itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
                                                 />
-                                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                                                <Legend 
+                                                    verticalAlign="bottom" 
+                                                    height={48} 
+                                                    iconType="circle" 
+                                                    wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', bottom: -10 }} 
+                                                />
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
                                 </>
                             ) : (
-                                <div className="col-span-2 flex items-center justify-center">
+                                <div className="col-span-2 flex items-center justify-center h-[300px]">
                                     <Loader2 className="w-6 h-6 animate-spin text-slate-200" />
                                 </div>
                             )}
@@ -293,17 +303,25 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                         <div className="space-y-6">
                             {isMounted ? (
                                 <>
-                                    <div className="h-[140px]">
+                                    <div className="h-[200px] md:h-[140px]">
                                         <p className="text-[10px] font-black uppercase mb-2 tracking-widest text-muted-foreground">Top Filières</p>
                                         <ResponsiveContainer width="100%" height="100%">
                                             <BarChart data={chartData.fields} layout="vertical">
                                                 <XAxis type="number" hide />
-                                                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={9} width={80} tickFormatter={(val) => val.split(' ')[0]} />
+                                                <YAxis 
+                                                    dataKey="name" 
+                                                    type="category" 
+                                                    stroke="#94a3b8" 
+                                                    fontSize={8} 
+                                                    width={70} 
+                                                    tickFormatter={(val) => val.split(' ')[0]} 
+                                                />
                                                 <Tooltip 
                                                     cursor={{ fill: '#f8fafc' }}
                                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                    itemStyle={{ fontSize: '10px' }}
                                                 />
-                                                <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={10} />
+                                                <Bar dataKey="value" fill="#2563eb" radius={[0, 4, 4, 0]} barSize={12} />
                                             </BarChart>
                                         </ResponsiveContainer>
                                     </div>
@@ -337,16 +355,23 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                                             </div>
                                         </div>
                                         
-                                        <div className="h-[150px]">
+                                        <div className="h-[200px] md:h-[150px]">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <BarChart data={chartData.modules}>
-                                                    <XAxis dataKey="name" stroke="#94a3b8" fontSize={7} tickFormatter={(val) => val.length > 8 ? val.slice(0, 8) + '...' : val} />
-                                                    <YAxis fontSize={9} stroke="#94a3b8" />
+                                                    <XAxis 
+                                                        dataKey="name" 
+                                                        stroke="#94a3b8" 
+                                                        fontSize={7} 
+                                                        tickFormatter={(val) => val.length > 6 ? val.slice(0, 5) + '..' : val} 
+                                                        interval={0}
+                                                    />
+                                                    <YAxis fontSize={8} stroke="#94a3b8" />
                                                     <Tooltip 
                                                         cursor={{ fill: '#f8fafc' }}
                                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                        itemStyle={{ fontSize: '10px' }}
                                                     />
-                                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+                                                    <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={15} />
                                                 </BarChart>
                                             </ResponsiveContainer>
                                         </div>
@@ -373,17 +398,25 @@ export default function AdminOverview({ stats, resources, users = [], setActiveT
                         <Users className="w-5 h-5 text-muted-foreground" />
                     </CardHeader>
                     <CardContent className="p-6">
-                        <div className="h-[250px]">
+                        <div className="h-[300px] md:h-[250px]">
                             {isMounted ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={chartData.userFields} layout="vertical">
                                         <XAxis type="number" hide />
-                                        <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={10} width={120} tickFormatter={(val) => val.length > 20 ? val.slice(0, 17) + '...' : val} />
+                                        <YAxis 
+                                            dataKey="name" 
+                                            type="category" 
+                                            stroke="#94a3b8" 
+                                            fontSize={9} 
+                                            width={100} 
+                                            tickFormatter={(val) => val.length > 15 ? val.slice(0, 12) + '...' : val} 
+                                        />
                                         <Tooltip 
                                             cursor={{ fill: '#f8fafc' }}
                                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                            itemStyle={{ fontSize: '10px' }}
                                         />
-                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={15}>
+                                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={12}>
                                             {chartData.userFields.map((entry, index) => (
                                                 <Cell key={`cell-${index}`} fill={USER_FIELD_COLORS[index % USER_FIELD_COLORS.length]} />
                                             ))}
