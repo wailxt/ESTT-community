@@ -1,3 +1,11 @@
+## [1.21.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.21.0...v1.21.1) (2026-04-24)
+
+
+### Bug Fixes
+
+* #BUG-75KIMJ Improve the mobile layout of the admin page and the moderator page and make them both responsive and more user friendly ([2ec2fb2](https://github.com/abdelhakim-sahifa/ESTT-community/commit/2ec2fb2a2bea93ece1b805e763c39e545b587d17)), closes [#BUG-75](https://github.com/abdelhakim-sahifa/ESTT-community/issues/BUG-75)
+* #BUG-75KIMJ Improve the mobile layout of the admin page and the moderator page and make them both responsive and more user friendly ([f48b264](https://github.com/abdelhakim-sahifa/ESTT-community/commit/f48b26477bd4447c97555463ae95e2c6754d43b6)), closes [#BUG-75](https://github.com/abdelhakim-sahifa/ESTT-community/issues/BUG-75)
+
 # [1.21.0](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.20.6...v1.21.0) (2026-04-22)
 
 
