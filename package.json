@@ -29,6 +29,7 @@
     "embla-carousel-react": "^8.6.0",
     "firebase": "^10.7.1",
     "googleapis": "^171.4.0",
+    "groq-sdk": "^1.1.2",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",

@@ -229,17 +229,25 @@ export default function AdminFastContribute() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            {/* Flat Maintenance Banner */}
+            <div className="bg-amber-400 text-amber-950 px-4 py-3 flex items-center gap-3 rounded-none border-none">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <div className="text-sm font-medium">
+                    <span className="font-bold">Avertissement :</span> Cette fonctionnalité est actuellement en maintenance. L'envoi direct est temporairement désactivé. Veuillez utiliser l'onglet "/contribuer" pour vos contributions.
+                </div>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
                 <div>
                     <h2 className="text-2xl font-bold">Contribution Rapide</h2>
                     <p className="text-muted-foreground text-sm">Ajoutez plusieurs ressources d'un coup. Pas d'emails, pas de vérification.</p>
                 </div>
-                <Button onClick={handleSubmitAll} disabled={resources.every(r => r.success || (!r.file && !r.url) || !r.title)}>
-                    Tout envoyer
+                <Button onClick={handleSubmitAll} disabled={true} className="rounded-none shadow-none">
+                    Tout envoyer (Désactivé)
                 </Button>
             </div>
 
-            <Card className="border-primary/10 shadow-sm bg-slate-50/30">
+            <Card className="border-slate-200 bg-slate-50/50 shadow-none rounded-none">
                 <CardHeader className="pb-4">
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Info className="w-4 h-4 text-primary" />
@@ -252,7 +260,7 @@ export default function AdminFastContribute() {
                 <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <FieldHeader label="Filière" field="field">
                         <Select value={commonData.field} onValueChange={(v) => handleCommonChange('field', v)}>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Filière" /></SelectTrigger>
+                            <SelectTrigger className="bg-white rounded-none shadow-none"><SelectValue placeholder="Filière" /></SelectTrigger>
                             <SelectContent>
                                 {staticDb.fields.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                             </SelectContent>
@@ -261,7 +269,7 @@ export default function AdminFastContribute() {
 
                     <FieldHeader label="Semestre" field="semester">
                         <Select value={commonData.semester} onValueChange={(v) => handleCommonChange('semester', v)}>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Semestre" /></SelectTrigger>
+                            <SelectTrigger className="bg-white rounded-none shadow-none"><SelectValue placeholder="Semestre" /></SelectTrigger>
                             <SelectContent>
                                 {staticDb.semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                             </SelectContent>
@@ -270,7 +278,7 @@ export default function AdminFastContribute() {
 
                     <FieldHeader label="Module" field="module">
                         <Select value={commonData.module} onValueChange={(v) => handleCommonChange('module', v)} disabled={!commonData.semester && !variableFields.has('semester')}>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Module" /></SelectTrigger>
+                            <SelectTrigger className="bg-white rounded-none shadow-none"><SelectValue placeholder="Module" /></SelectTrigger>
                             <SelectContent>
                                 {modules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                             </SelectContent>
@@ -279,7 +287,7 @@ export default function AdminFastContribute() {
 
                     <FieldHeader label="Type de Ressource" field="type">
                         <Select value={commonData.type} onValueChange={(v) => handleCommonChange('type', v)}>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Type" /></SelectTrigger>
+                            <SelectTrigger className="bg-white rounded-none shadow-none"><SelectValue placeholder="Type" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="pdf">PDF</SelectItem>
                                 <SelectItem value="image">Image</SelectItem>
@@ -291,7 +299,7 @@ export default function AdminFastContribute() {
 
                     <FieldHeader label="Type de Document" field="docType">
                         <Select value={commonData.docType} onValueChange={(v) => handleCommonChange('docType', v)}>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Type de Document" /></SelectTrigger>
+                            <SelectTrigger className="bg-white rounded-none shadow-none"><SelectValue placeholder="Type de Document" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="Cours">Cours</SelectItem>
                                 <SelectItem value="TD">TD</SelectItem>
@@ -303,7 +311,7 @@ export default function AdminFastContribute() {
 
                     <FieldHeader label="Professeur" field="professor">
                         <Select value={commonData.professor} onValueChange={(v) => handleCommonChange('professor', v)}>
-                            <SelectTrigger className="bg-white"><SelectValue placeholder="Professeur" /></SelectTrigger>
+                            <SelectTrigger className="bg-white rounded-none shadow-none"><SelectValue placeholder="Professeur" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="non-specifie">Non spécifié</SelectItem>
                                 {professors.map((p, i) => <SelectItem key={i} value={typeof p === 'string' ? p : p.name}>{typeof p === 'string' ? p : p.name}</SelectItem>)}
@@ -321,7 +329,7 @@ export default function AdminFastContribute() {
                     const rowModules = resField && resSemeostre ? staticDb.modules[`${resField}-${resSemeostre}`] || [] : [];
 
                     return (
-                        <Card key={resource.id} className={resource.success ? "border-green-500 bg-green-50/50" : "shadow-sm border-slate-200"}>
+                        <Card key={resource.id} className={resource.success ? "border-green-500 bg-green-50/50 rounded-none shadow-none" : "border-slate-200 rounded-none shadow-none"}>
                             <CardContent className="pt-6 space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
                                     <div className="md:col-span-4 space-y-2">
@@ -331,7 +339,7 @@ export default function AdminFastContribute() {
                                             value={resource.title}
                                             onChange={(e) => updateResource(resource.id, { title: e.target.value })}
                                             disabled={resource.success || resource.loading}
-                                            className="bg-white"
+                                            className="bg-white rounded-none shadow-none"
                                         />
                                     </div>
                                     <div className="md:col-span-6 space-y-2">
@@ -342,7 +350,7 @@ export default function AdminFastContribute() {
                                                 value={resource.url}
                                                 onChange={(e) => updateResource(resource.id, { url: e.target.value })}
                                                 disabled={resource.success || resource.loading}
-                                                className="bg-white"
+                                                className="bg-white rounded-none shadow-none"
                                             />
                                         ) : (
                                             <div className="flex items-center gap-2">
@@ -350,7 +358,7 @@ export default function AdminFastContribute() {
                                                     type="file"
                                                     onChange={(e) => updateResource(resource.id, { file: e.target.files[0], title: resource.title || e.target.files[0]?.name.split('.')[0] })}
                                                     disabled={resource.success || resource.loading}
-                                                    className="cursor-pointer bg-white"
+                                                    className="cursor-pointer bg-white rounded-none shadow-none"
                                                 />
                                             </div>
                                         )}
@@ -377,7 +385,7 @@ export default function AdminFastContribute() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase">Filière</Label>
                                                 <Select value={resource.field} onValueChange={(v) => updateResource(resource.id, { field: v })}>
-                                                    <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Filière" /></SelectTrigger>
+                                                    <SelectTrigger className="h-8 text-xs bg-white rounded-none shadow-none"><SelectValue placeholder="Filière" /></SelectTrigger>
                                                     <SelectContent>
                                                         {staticDb.fields.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}
                                                     </SelectContent>
@@ -388,7 +396,7 @@ export default function AdminFastContribute() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase">Semestre</Label>
                                                 <Select value={resource.semester} onValueChange={(v) => updateResource(resource.id, { semester: v })}>
-                                                    <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Semestre" /></SelectTrigger>
+                                                    <SelectTrigger className="h-8 text-xs bg-white rounded-none shadow-none"><SelectValue placeholder="Semestre" /></SelectTrigger>
                                                     <SelectContent>
                                                         {staticDb.semesters.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                                                     </SelectContent>
@@ -399,7 +407,7 @@ export default function AdminFastContribute() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase">Module</Label>
                                                 <Select value={resource.module} onValueChange={(v) => updateResource(resource.id, { module: v })}>
-                                                    <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Module" /></SelectTrigger>
+                                                    <SelectTrigger className="h-8 text-xs bg-white rounded-none shadow-none"><SelectValue placeholder="Module" /></SelectTrigger>
                                                     <SelectContent>
                                                         {rowModules.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                                                     </SelectContent>
@@ -410,7 +418,7 @@ export default function AdminFastContribute() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase">Type de Ressource</Label>
                                                 <Select value={resource.type} onValueChange={(v) => updateResource(resource.id, { type: v })}>
-                                                    <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Type" /></SelectTrigger>
+                                                    <SelectTrigger className="h-8 text-xs bg-white rounded-none shadow-none"><SelectValue placeholder="Type" /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="pdf">PDF</SelectItem>
                                                         <SelectItem value="image">Image</SelectItem>
@@ -424,7 +432,7 @@ export default function AdminFastContribute() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase">Type de Document</Label>
                                                 <Select value={resource.docType} onValueChange={(v) => updateResource(resource.id, { docType: v })}>
-                                                    <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Doc Type" /></SelectTrigger>
+                                                    <SelectTrigger className="h-8 text-xs bg-white rounded-none shadow-none"><SelectValue placeholder="Doc Type" /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="Cours">Cours</SelectItem>
                                                         <SelectItem value="TD">TD</SelectItem>
@@ -438,7 +446,7 @@ export default function AdminFastContribute() {
                                             <div className="space-y-1.5">
                                                 <Label className="text-[10px] font-black uppercase">Professeur</Label>
                                                 <Select value={resource.professor} onValueChange={(v) => updateResource(resource.id, { professor: v })}>
-                                                    <SelectTrigger className="h-8 text-xs bg-white"><SelectValue placeholder="Professeur" /></SelectTrigger>
+                                                    <SelectTrigger className="h-8 text-xs bg-white rounded-none shadow-none"><SelectValue placeholder="Professeur" /></SelectTrigger>
                                                     <SelectContent>
                                                         <SelectItem value="non-specifie">Non spécifié</SelectItem>
                                                         {professors.map((p, i) => <SelectItem key={i} value={typeof p === 'string' ? p : p.name}>{typeof p === 'string' ? p : p.name}</SelectItem>)}
@@ -488,7 +496,7 @@ export default function AdminFastContribute() {
                                                                     updateResource(resource.id, { fields: updatedLinks });
                                                                 }}
                                                             >
-                                                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Filière" /></SelectTrigger>
+                                                                <SelectTrigger className="h-8 text-xs rounded-none shadow-none"><SelectValue placeholder="Filière" /></SelectTrigger>
                                                                 <SelectContent>
                                                                     {staticDb.fields.map(f => (
                                                                         <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
@@ -508,7 +516,7 @@ export default function AdminFastContribute() {
                                                                     }}
                                                                     disabled={!link.fieldId}
                                                                 >
-                                                                    <SelectTrigger className="h-8 text-xs flex-grow"><SelectValue placeholder="Module" /></SelectTrigger>
+                                                                    <SelectTrigger className="h-8 text-xs flex-grow rounded-none shadow-none"><SelectValue placeholder="Module" /></SelectTrigger>
                                                                     <SelectContent>
                                                                         {linkModules.map(m => (
                                                                             <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
@@ -545,7 +553,7 @@ export default function AdminFastContribute() {
                     );
                 })}
 
-                <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-2xl hover:bg-slate-50 hover:border-primary/50 transition-all group" onClick={addResourceRow}>
+                <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-none hover:bg-slate-50 hover:border-primary/50 transition-all group shadow-none" onClick={addResourceRow}>
                     <Plus className="w-5 h-5 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />
                     <span className="font-bold">Ajouter une autre ressource</span>
                 </Button>
