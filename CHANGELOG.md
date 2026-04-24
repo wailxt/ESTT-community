@@ -1,3 +1,10 @@
+## [1.21.2](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.21.1...v1.21.2) (2026-04-24)
+
+
+### Bug Fixes
+
+* update ai model to use groq ([62ea941](https://github.com/abdelhakim-sahifa/ESTT-community/commit/62ea941fba0a3541e101edd073c4727e5bd468b7))
+
 ## [1.21.1](https://github.com/abdelhakim-sahifa/ESTT-community/compare/v1.21.0...v1.21.1) (2026-04-24)
 
 
